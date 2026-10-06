@@ -1,0 +1,85 @@
+"use client";
+
+import { useCallback, useMemo, useState } from "react";
+import Sidebar from "@/components/Sidebar/Sidebar";
+import ReportFormModal from "@/components/ReportFormModal/ReportFormModal";
+import ReportTable, { EnergyWasteReport } from "@/components/ReportTable/ReportTable";
+import styles from "./report-energy-waste.module.css";
+
+type Tab = "active" | "review" | "resolved";
+
+const initialReports: EnergyWasteReport[] = [
+  { id: "EWR-1048", issue: "Air Conditioning", location: "Floor 8 · Meeting Room", dateReported: "29 Sep 2026", status: "Under Review" },
+  { id: "EWR-1047", issue: "Lights", location: "Floor 12 · Open Office", dateReported: "28 Sep 2026", status: "Open" },
+  { id: "EWR-1046", issue: "Equipment", location: "Floor 4 · Pantry", dateReported: "27 Sep 2026", status: "Under Review" },
+  { id: "EWR-1045", issue: "Lights", location: "Floor 15 · Training Room", dateReported: "25 Sep 2026", status: "Resolved" },
+  { id: "EWR-1044", issue: "Equipment", location: "Floor 2 · Server Room", dateReported: "24 Sep 2026", status: "Open" },
+  { id: "EWR-1043", issue: "Air Conditioning", location: "Floor 10 · Reception", dateReported: "22 Sep 2026", status: "Resolved" },
+];
+
+const sidebarItems = [
+  { label: "Energy Explorer", href: "/", icon: <Icon name="chart" /> },
+  { label: "Report Energy Waste", href: "/report-energy-waste", icon: <Icon name="report" /> },
+  { label: "Cost", href: "/#cost", icon: <Icon name="cost" /> },
+  { label: "Sustainability", href: "/#sustainability", icon: <Icon name="leaf" /> },
+  { label: "Insights", href: "/#insights", icon: <Icon name="insights" /> },
+];
+
+export default function ReportEnergyWastePage() {
+  const [tab, setTab] = useState<Tab>("active");
+  const [reports, setReports] = useState(initialReports);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  const visibleReports = useMemo(() => reports.filter((report) => {
+    if (tab === "active") return report.status !== "Resolved";
+    if (tab === "review") return report.status === "Under Review";
+    return report.status === "Resolved";
+  }), [reports, tab]);
+
+  const closeModal = useCallback(() => setModalOpen(false), []);
+  const counts = { active: reports.filter((report) => report.status !== "Resolved").length, review: reports.filter((report) => report.status === "Under Review").length, resolved: reports.filter((report) => report.status === "Resolved").length };
+
+  return (
+    <div className={styles.shell}>
+      <Sidebar items={sidebarItems} activeHref="/report-energy-waste" mobileOpen={mobileNavOpen} />
+      <main className={styles.workspace}>
+        <header className={styles.pageHeader}>
+          <button className={styles.menuButton} type="button" onClick={() => setMobileNavOpen((value) => !value)} aria-label="Toggle navigation" aria-expanded={mobileNavOpen}><Icon name="menu" /></button>
+          <h1>Report Energy Waste</h1>
+          <button className={styles.createButton} type="button" onClick={() => setModalOpen(true)}><Icon name="plus" /><span>Create report</span></button>
+        </header>
+
+        <section className={styles.reportPanel} aria-labelledby="reports-heading">
+          <div className={styles.tabs} role="tablist" aria-label="Report status">
+            {([['active', 'All active', counts.active], ['review', 'Under Review', counts.review], ['resolved', 'Resolved', counts.resolved]] as const).map(([value, label, count]) => (
+              <button key={value} type="button" role="tab" aria-selected={tab === value} className={tab === value ? styles.tabActive : ""} onClick={() => setTab(value)}>{label}<span>{count}</span></button>
+            ))}
+          </div>
+          <ReportTable reports={visibleReports} />
+        </section>
+      </main>
+      {mobileNavOpen && <button type="button" className={styles.scrim} aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />}
+      <ReportFormModal open={modalOpen} onClose={closeModal} onSubmit={(report) => {
+        const nextId = `EWR-${1049 + reports.length - initialReports.length}`;
+        const dateReported = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date());
+        setReports((current) => [{ ...report, id: nextId, dateReported, status: "Open" }, ...current]);
+        setTab("active");
+        closeModal();
+      }} />
+    </div>
+  );
+}
+
+function Icon({ name }: { name: "chart" | "report" | "cost" | "leaf" | "insights" | "menu" | "plus" }) {
+  const paths = {
+    chart: <><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /><path d="m4 14 5-4 4 3 6-7" /></>,
+    report: <><path d="M8 4h8M9 3h6v3H9zM7 5H5v16h14V5h-2" /><path d="M8 11h8M8 15h5" /></>,
+    cost: <><circle cx="12" cy="12" r="9" /><path d="M15.5 8.5c-.8-.7-1.8-1-3-1-1.7 0-3 .9-3 2s1.1 1.7 3 2.1 3 1 3 2.2-1.3 2.2-3.2 2.2M12 5v14" /></>,
+    leaf: <><path d="M20.5 3.5C12 3.7 5.1 7.2 4.3 13.2c-.5 3.7 2.4 6.8 6.1 6.3 6-.8 9.5-7.7 10.1-16Z" /><path d="M4 21c2.2-5.5 6.5-9.7 12.7-12.5" /></>,
+    insights: <path d="M4 20v-6M9 20V9M14 20v-4M19 20V4" />,
+    menu: <path d="M4 7h16M4 12h16M4 17h16" />,
+    plus: <path d="M12 5v14M5 12h14" />,
+  };
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
+}

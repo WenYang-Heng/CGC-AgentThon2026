@@ -1,0 +1,25 @@
+.shell{--ink:#0b1730;--muted:#66748b;--line:#dfe7f0;min-height:100vh;background:#f3f7fb}
+.workspace{min-width:0;min-height:100vh;margin-left:184px;padding:26px clamp(18px,3vw,42px)}
+.pageHeader{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:22px;margin-bottom:20px}
+.pageHeader>div>p{margin:0 0 5px;color:#05856e;font-size:10px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
+.pageHeader h1{margin:0;color:var(--ink);font-size:30px;font-weight:800;line-height:1.1;letter-spacing:-.035em}
+.pageHeader>div>span{display:block;margin-top:7px;color:var(--muted);font-size:12px}
+.createButton{display:inline-flex;height:42px;align-items:center;justify-content:center;gap:8px;padding:0 15px;color:#fff;background:#137be8;border:1px solid #137be8;border-radius:9px;box-shadow:0 8px 18px rgba(19,123,232,.18);font:inherit;font-size:11px;font-weight:750;cursor:pointer;transition:background 160ms ease,transform 160ms ease,box-shadow 160ms ease}
+.createButton:hover{background:#096bd0;box-shadow:0 10px 22px rgba(19,123,232,.24);transform:translateY(-1px)}
+.menuButton{display:none}
+.reportPanel{min-width:0}
+.panelHeader{display:flex;align-items:center;justify-content:space-between;padding:19px 20px 14px}
+.panelHeader h2{margin:0;color:var(--ink);font-size:16px;letter-spacing:-.02em}
+.panelHeader p{margin:5px 0 0;color:var(--muted);font-size:10px}
+.tabs{display:flex;gap:22px;padding:0;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{position:relative;display:flex;height:44px;align-items:center;gap:7px;padding:0;color:#66748b;background:transparent;border:0;font:inherit;font-size:11px;font-weight:650;white-space:nowrap;cursor:pointer}
+.tabs button::after{position:absolute;right:0;bottom:-1px;left:0;height:2px;background:#137be8;content:"";opacity:0;transform:scaleX(.5);transition:opacity 150ms ease,transform 150ms ease}
+.tabs button:hover{color:#263a52}
+.tabs .tabActive{color:#137be8}
+.tabs .tabActive::after{opacity:1;transform:scaleX(1)}
+.tabs span{display:inline-grid;min-width:20px;height:20px;place-items:center;padding:0 6px;color:#64748b;background:#edf2f6;border-radius:6px;font-size:9px;font-weight:750}
+.tabActive span{color:#0b66c3;background:#eaf3ff}
+.scrim{display:none}
+
+@media(max-width:700px){.workspace{margin-left:0;padding:16px 12px 72px}.pageHeader{grid-template-columns:38px minmax(0,1fr);align-items:start;gap:10px}.menuButton{display:grid;width:38px;height:38px;place-items:center;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:9px}.pageHeader h1{font-size:25px}.pageHeader>div>span{max-width:34ch;line-height:1.45}.createButton{grid-column:1/-1;width:100%;margin-top:4px}.panelHeader{padding:16px 15px 12px}.tabs{gap:18px}.scrim{position:fixed;inset:0;z-index:35;display:block;background:rgba(5,17,29,.48);border:0}}
+@media(prefers-reduced-motion:reduce){.createButton,.tabs button::after{transition:none}}
