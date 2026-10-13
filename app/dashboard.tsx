@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  FormEvent,
-  KeyboardEvent,
   ReactNode,
   useEffect,
   useMemo,
@@ -30,18 +28,8 @@ const sidebarItems = [
     icon: <Icon name="alert" />,
   },
   {
-    label: "Cost",
-    href: "#cost",
-    icon: <Icon name="cost" />,
-  },
-  {
-    label: "Sustainability",
-    href: "#sustainability",
-    icon: <Icon name="leaf" />,
-  },
-  {
     label: "Insights",
-    href: "#insights",
+    href: "/insights",
     icon: <Icon name="insights" />,
   },
 ];
@@ -76,37 +64,10 @@ const monthNames = [
   "December",
 ] as const;
 
-const floorOptions = Array.from(
-  { length: 16 },
-  (_, index) => `Floor ${index + 1}`
-);
-
 type FloorId = string;
 type FloorEntry = [FloorId, EnergyFloorData];
 
 type Scope = "ALL" | FloorId;
-
-type Metric =
-  | "consumption"
-  | "cost"
-  | "intensity"
-  | "demand"
-  | "emissions";
-
-type Comparison =
-  | "building-average"
-  | "previous-month"
-  | "none";
-
-type FloorSort = "usage" | "carbon" | "cost" | "demand";
-
-type DashboardTab =
-  | "summary"
-  | "breakdown"
-  | "comparison"
-  | "demand"
-  | "details"
-  | "insights";
 
 type IconName =
   | "bolt"
@@ -237,294 +198,128 @@ function Icon({
   return <svg {...common}>{paths[name]}</svg>;
 }
 
-const compactEnergy = (value: number) => {
-  if (value >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(2)} GWh`;
-  }
+type FloorSort = "change" | "usage" | "employee";
 
-  if (value >= 100_000) {
-    return `${(value / 1000).toFixed(1)} MWh`;
-  }
-
-  return `${Math.round(value).toLocaleString()} kWh`;
-};
-
-const money = (value: number) =>
-  `RM ${value.toLocaleString(undefined, {
-    maximumFractionDigits: 0,
-  })}`;
-
-function createAxisScale(maxValue: number, intervals = 4) {
-  const rawStep = Math.max(maxValue, 0) / intervals;
-
-  if (rawStep === 0) {
-    return { majorUnit: 1, maximum: intervals };
-  }
-
-  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
-  const normalizedStep = rawStep / magnitude;
-  const niceStep =
-    normalizedStep <= 1
-      ? 1
-      : normalizedStep <= 2
-      ? 2
-      : normalizedStep <= 2.5
-      ? 2.5
-      : normalizedStep <= 5
-      ? 5
-      : 10;
-  const majorUnit = niceStep * magnitude;
-
-  return {
-    majorUnit,
-    maximum: majorUnit * intervals,
-  };
+function completeSum(values: (number | null | undefined)[]): number | null {
+  if (!values.length || values.some(value => value == null)) return null;
+  return values.reduce<number>((sum, value) => sum + value!, 0);
 }
 
-type ChartSeries = {
-  id: string;
-  label: string;
-  values: readonly number[];
-  color: string;
+function percentChange(current: number | null, baseline: number | null): number | null {
+  return current === null || baseline === null || baseline <= 0 ? null : (current - baseline) / baseline * 100;
+}
+
+function perEmployee(usage: number | null, employees: number | null): number | null {
+  return usage === null || employees === null || employees <= 0 ? null : usage / employees;
+}
+
+function formatEnergy(value: number | null): string {
+  return value === null ? "Unavailable" : value.toLocaleString(undefined, { maximumFractionDigits: 1 }) + " kWh";
+}
+
+function formatChange(value: number | null): string {
+  return value === null ? "Unavailable" : (value > 0 ? "+" : "") + value.toFixed(1) + "%";
+}
+
+function monthlyTotals(entries: FloorEntry[], year: "baseline2025" | "current2026"): (number | null)[] {
+  return months.map((_, index) => completeSum(entries.map(([, floor]) => floor[year]?.[index])));
+}
+
+type ChartSeries = { id: string; label: string; values: (number | null)[]; color: string };
+
+function LineChart({ series, activeMonthIndex, label, unit = "kWh" }: {
+  series: ChartSeries[]; activeMonthIndex: number; label: string; unit?: string;
+}) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const width = 760, height = 280, left = 58, right = 18, top = 28, bottom = 42;
+  const max = Math.max(1, ...series.flatMap(item => item.values.filter((value): value is number => value !== null)));
+  const x = (index: number) => left + index * (width - left - right) / 11;
+  const y = (value: number) => top + (1 - value / max) * (height - top - bottom);
+  const active = hoveredIndex ?? activeMonthIndex;
+  const formatValue = (value: number | null) => value === null ? "Unavailable" : value.toLocaleString(undefined, { maximumFractionDigits: 1 }) + " " + unit;
+  return <div className={styles.chartWrapper}>
+    <svg className={styles.lineChart} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label} onPointerLeave={() => setHoveredIndex(null)}>
+      {[0, .25, .5, .75, 1].map(tick => <g key={tick}><line x1={left} y1={y(max * tick)} x2={width - right} y2={y(max * tick)} className={styles.gridLine} /><text x={left - 10} y={y(max * tick) + 4} textAnchor="end" className={styles.axisText}>{Math.round(max * tick / 1000)}k</text></g>)}
+      {months.map((month, index) => <text key={month} x={x(index)} y={height - 13} textAnchor="middle" className={styles.axisText}>{month}</text>)}
+      {series.map(item => {
+        let previous = false;
+        const path = item.values.map((value, index) => {
+          if (value === null) { previous = false; return ""; }
+          const segment = (previous ? "L" : "M") + x(index) + "," + y(value);
+          previous = true;
+          return segment;
+        }).join(" ");
+        return <g key={item.id}><path d={path} pathLength="1" className={styles.chartLine} style={{ stroke: item.color }} />{item.values.map((value, index) => value === null ? null : <circle key={index} cx={x(index)} cy={y(value)} r={index === active ? 4.8 : 3.2} className={styles.chartPoint} style={{ fill: item.color }}><title>{months[index] + " · " + item.label + ": " + formatValue(value)}</title></circle>)}</g>;
+      })}
+      <line x1={x(active)} y1={top} x2={x(active)} y2={height - bottom} className={styles.chartHoverGuide} />
+      <g className={styles.peakLabel} transform={`translate(${Math.min(width - 215, Math.max(left, x(active) - 80))} 3)`}><rect width="205" height="55" rx="8" /><text x="10" y="14">{monthNames[active]}</text>{series.map((item, index) => <text key={item.id} x="10" y={29 + index * 15}>{item.label}: {formatValue(item.values[active])}</text>)}</g>
+      {months.map((month, index) => <rect key={month} x={Math.max(left, x(index) - 30)} y={top} width="60" height={height - top - bottom} className={styles.chartHitArea} tabIndex={0} role="button" aria-label={month + ": " + series.map(item => item.label + " " + formatValue(item.values[index])).join(", ")} onPointerEnter={() => setHoveredIndex(index)} onFocus={() => setHoveredIndex(index)} onBlur={() => setHoveredIndex(null)} />)}
+    </svg>
+    <div className={styles.seriesLegend}>{series.map(item => <span key={item.id}><i style={{ backgroundColor: item.color }} /><b>{item.label}</b></span>)}</div>
+    {series.some(item => item.values.some(value => value === null)) ? <p className={styles.comparisonHighlight}>Missing readings are unavailable and appear as chart gaps.</p> : null}
+  </div>;
+}
+type CarbonMonth = {
+  baseline: number | null;
+  current: number | null;
+  difference: number | null;
+  change: number | null;
 };
 
-const floorLineColors = [
-  "#0bb894", "#137be8", "#8b5cf6", "#f97316",
-  "#e11d48", "#0891b2", "#65a30d", "#d97706",
-  "#7c3aed", "#0284c7", "#be123c", "#0f766e",
-  "#9333ea", "#2563eb", "#c2410c", "#4d7c0f",
-] as const;
+function carbonMonthlyChanges(baseline: (number | null)[], current: (number | null)[], factor: number | null): CarbonMonth[] {
+  return months.map((_, index) => {
+    const previous = baseline[index] == null || factor === null ? null : baseline[index]! * factor;
+    const generated = current[index] == null || factor === null ? null : current[index]! * factor;
+    return { baseline: previous, current: generated,
+      difference: previous === null || generated === null ? null : generated - previous,
+      change: percentChange(generated, previous) };
+  });
+}
 
-function LineChart({
-  values,
-  comparisonValues,
-  label,
-  formatTick = (value) => `${Math.round(value / 1000)}k`,
-  formatValue = (value) => `${value.toLocaleString()} kWh`,
-  activeMonthIndex,
-  series,
-}: {
-  values: readonly number[];
-  comparisonValues?: readonly number[];
-  label: string;
-  formatTick?: (value: number) => string;
-  formatValue?: (value: number) => string;
-  activeMonthIndex?: number;
-  series?: ChartSeries[];
+function percentageAxis(values: (number | null)[]) {
+  const available = values.filter((value): value is number => value !== null && Number.isFinite(value));
+  const maxAbs = Math.max(0, ...available.map(value => Math.abs(value)));
+  const roundedLimit = Math.max(2, Math.ceil(maxAbs / 2) * 2);
+  // Keep 2-point intervals for normal ranges; widen for larger future changes.
+  const tickStep = roundedLimit <= 12 ? 2 : Math.ceil(roundedLimit / 12) * 2;
+  const maximum = Math.ceil(roundedLimit / tickStep) * tickStep;
+  const minimum = available.some(value => value < 0) ? -maximum : 0;
+  const ticks = Array.from({ length: Math.round((maximum - minimum) / tickStep) + 1 }, (_, index) => minimum + index * tickStep);
+  return { minimum, maximum, ticks };
+}
+
+function CarbonChangeChart({ data, activeMonthIndex, label }: {
+  data: CarbonMonth[]; activeMonthIndex: number; label: string;
 }) {
-  const [hoveredIndex, setHoveredIndex] =
-    useState<number | null>(null);
-
-  const width = 760;
-  const height = 280;
-  const left = 58;
-  const right = 18;
-  const top = 28;
-  const bottom = 42;
-
-  const renderedSeries =
-    series?.length
-      ? series
-      : [{ id: "total", label: "Total", values, color: "#0bb894" }];
-  const allValues = [
-    ...renderedSeries.flatMap((item) => item.values),
-    ...(comparisonValues ?? []),
-  ];
-
-  const maxValue = Math.max(...allValues);
-  const axisIntervals = 4;
-  const axisScale = createAxisScale(maxValue, axisIntervals);
-  const min = 0;
-  const max = axisScale.maximum;
-
-  const x = (index: number) =>
-    left + (index * (width - left - right)) / 11;
-
-  const y = (value: number) =>
-    top +
-    ((max - value) * (height - top - bottom)) /
-      Math.max(max - min, 1);
-
-  const comparisonPoints = comparisonValues
-    ?.map(
-      (value, index) => `${x(index)},${y(value)}`
-    )
-    .join(" ");
-
-  const peak = Math.max(...values);
-  const peakIndex = values.indexOf(peak);
-  const highlightedIndex =
-    hoveredIndex ?? activeMonthIndex ?? peakIndex;
-  const highlightedValue = values[highlightedIndex] ?? 0;
-
-  const ticks = Array.from(
-    { length: axisIntervals + 1 },
-    (_, index) => max - axisScale.majorUnit * index
-  );
-
-  return (
-    <div className={styles.chartWrapper}>
-      <svg
-        className={styles.lineChart}
-        viewBox={`0 0 ${width} ${height}`}
-        role="img"
-        aria-label={label}
-        onPointerLeave={() => setHoveredIndex(null)}
-      >
-        {ticks.map((tick, index) => (
-          <g key={`tick-${index}-${tick}`}>
-            <line
-              x1={left}
-              y1={y(tick)}
-              x2={width - right}
-              y2={y(tick)}
-              className={styles.gridLine}
-            />
-
-            <text
-              x={left - 10}
-              y={y(tick) + 4}
-              textAnchor="end"
-              className={styles.axisText}
-            >
-              {formatTick(tick)}
-            </text>
-          </g>
-        ))}
-
-        {months.map((month, index) => (
-          <text
-            key={month}
-            x={x(index)}
-            y={height - 13}
-            textAnchor="middle"
-            className={`${styles.axisText} ${
-              index % 2
-                ? styles.optionalTick
-                : ""
-            }`}
-          >
-            {month}
-          </text>
-        ))}
-
-        {renderedSeries.length === 1 ? (
-          <polygon
-            points={`${left},${height - bottom} ${renderedSeries[0].values
-              .map((value, index) => `${x(index)},${y(value)}`)
-              .join(" ")} ${x(11)},${height - bottom}`}
-            className={styles.chartArea}
-          />
-        ) : null}
-
-        {comparisonPoints ? (
-          <polyline
-            points={comparisonPoints}
-            className={styles.comparisonLine}
-          />
-        ) : null}
-
-        {renderedSeries.map((item) => (
-          <g key={item.id}>
-            <polyline
-              points={item.values
-                .map((value, index) => `${x(index)},${y(value)}`)
-                .join(" ")}
-              pathLength="1"
-              className={styles.chartLine}
-              style={{ stroke: item.color }}
-            />
-            {item.values.map((value, index) => (
-              <circle
-                key={`${item.id}-${index}`}
-                cx={x(index)}
-                cy={y(value)}
-                r={index === highlightedIndex ? 4.8 : 3.2}
-                className={`${styles.chartPoint} ${
-                  index === highlightedIndex
-                    ? styles.selectedChartPoint
-                    : ""
-                }`}
-                style={{ fill: item.color }}
-              />
-            ))}
-          </g>
-        ))}
-
-        <line
-          x1={x(highlightedIndex)}
-          y1={top}
-          x2={x(highlightedIndex)}
-          y2={height - bottom}
-          className={styles.chartHoverGuide}
-        />
-
-        <g
-          className={styles.peakLabel}
-          transform={`translate(${Math.min(
-            width - 154,
-            Math.max(left, x(highlightedIndex) - 60)
-          )} ${Math.max(3, y(highlightedValue) - 49)})`}
-        >
-          <rect width="142" height="39" rx="8" />
-          <text x="10" y="15">
-            {months[highlightedIndex]} 2025
-          </text>
-          <text x="10" y="31">
-            {formatValue(highlightedValue)}
-          </text>
-        </g>
-
-        {values.map((value, index) => {
-          const step = (width - left - right) / 11;
-          const start =
-            index === 0 ? left : x(index) - step / 2;
-          const end =
-            index === 11 ? width - right : x(index) + step / 2;
-
-          return (
-            <rect
-              key={`hit-${index}`}
-              x={start}
-              y={top}
-              width={end - start}
-              height={height - top - bottom}
-              className={styles.chartHitArea}
-              tabIndex={0}
-              role="button"
-              aria-label={`${months[index]} 2025, ${formatValue(value)}`}
-              onPointerEnter={() => setHoveredIndex(index)}
-              onFocus={() => setHoveredIndex(index)}
-              onBlur={() => setHoveredIndex(null)}
-            />
-          );
-        })}
-      </svg>
-
-      <div className={styles.seriesLegend} aria-label="Chart series">
-        {renderedSeries.map((item) => (
-          <span key={item.id}>
-            <i style={{ backgroundColor: item.color }} />
-            <b>{item.label}</b>
-          </span>
-        ))}
-      </div>
-
-      {comparisonValues ? (
-        <div className={styles.chartLegend}>
-          <span>
-            <i className={styles.legendPrimary} />
-            Selected
-          </span>
-
-          <span>
-            <i className={styles.legendComparison} />
-            Building average
-          </span>
-        </div>
-      ) : null}
-    </div>
-  );
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const width = 760, height = 280, left = 70, right = 18, top = 28, bottom = 42;
+  const axis = percentageAxis(data.map(month => month.change));
+  const step = (width - left - right) / 12;
+  const x = (index: number) => left + (index + .5) * step;
+  const y = (value: number) => top + (axis.maximum - value) / (axis.maximum - axis.minimum) * (height - top - bottom);
+  const formatCarbon = (value: number | null, signed = false) => value === null ? "Unavailable" :
+    `${signed && value > 0 ? "+" : ""}${value.toLocaleString("en-MY", { maximumFractionDigits: 1 })} kgCO₂e`;
+  const tooltip = (index: number) => `${monthNames[index]}\n2025 Baseline: ${formatCarbon(data[index].baseline)}\n2026 Generated: ${formatCarbon(data[index].current)}\nDifference: ${formatCarbon(data[index].difference, true)}\nChange: ${formatChange(data[index].change)}`;
+  const active = hoveredIndex ?? activeMonthIndex;
+  return <div className={styles.chartWrapper}>
+    <svg className={styles.lineChart} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label} onPointerLeave={() => setHoveredIndex(null)}>
+      <text x={left} y="15" className={styles.axisText}>Change (%)</text>
+      {axis.ticks.map(tick => <g key={tick}><line x1={left} y1={y(tick)} x2={width - right} y2={y(tick)} className={styles.gridLine} /><text x={left - 10} y={y(tick) + 4} textAnchor="end" className={styles.axisText}>{`${tick > 0 ? "+" : ""}${tick}%`}</text></g>)}
+      <line x1={left} y1={y(0)} x2={width - right} y2={y(0)} stroke="#66748b" strokeWidth="1.8" />
+      {data.map((month, index) => <g key={months[index]}>
+        {month.change === null ? <text x={x(index)} y={y(0) - 7} textAnchor="middle" className={styles.axisText}>N/A</text> :
+          <rect x={x(index) - step * .28} y={Math.min(y(0), y(month.change))} width={step * .56} height={Math.max(1, Math.abs(y(month.change) - y(0)))} rx="2" fill={month.change > 0 ? "#df7771" : "#0bb894"} opacity={index === active ? 1 : .8}><title>{tooltip(index)}</title></rect>}
+        <text x={x(index)} y={height - 13} textAnchor="middle" className={styles.axisText}>{months[index]}</text>
+        <rect x={left + index * step} y={top} width={step} height={height - top - bottom} className={styles.chartHitArea} tabIndex={0} role="button" aria-label={tooltip(index)} onPointerEnter={() => setHoveredIndex(index)} onFocus={() => setHoveredIndex(index)} onBlur={() => setHoveredIndex(null)}><title>{tooltip(index)}</title></rect>
+      </g>)}
+      {hoveredIndex !== null ? <g className={styles.peakLabel} transform={`translate(${hoveredIndex >= 6 ? left : width - right - 265} 3)`}>
+        <rect width="265" height="96" rx="8" />
+        {[monthNames[hoveredIndex], `2025 Baseline: ${formatCarbon(data[hoveredIndex].baseline)}`, `2026 Generated: ${formatCarbon(data[hoveredIndex].current)}`, `Difference: ${formatCarbon(data[hoveredIndex].difference, true)}`, `Change: ${formatChange(data[hoveredIndex].change)}`].map((text, index) => <text key={index} x="10" y={16 + index * 17} style={{ fontSize: 10 }}>{text}</text>)}
+      </g> : null}
+    </svg>
+    <div className={styles.seriesLegend}><span><i style={{ backgroundColor: "#66748b" }} /><b>2025</b></span></div>
+    {data.some(month => month.change === null) ? <p className={styles.comparisonHighlight}>N/A: percentage change unavailable because data is missing or baseline emissions are zero.</p> : null}
+  </div>;
 }
 
 function PanelHead({
@@ -552,326 +347,11 @@ function PanelHead({
   );
 }
 
-function FloorRanking({
-  selected,
-  metric,
-  onSelect,
-  floorEntries,
-  emissionFactor,
-  monthIndex,
-}: {
-  selected: Scope;
-  metric: Metric;
-  onSelect: (floor: FloorId) => void;
-  floorEntries: FloorEntry[];
-  emissionFactor: number;
-  monthIndex: number;
-}) {
-  const ranked = useMemo(() => {
-    return floorEntries
-      .map(([id, floor]) => {
-        const total = floor.values[monthIndex] ?? 0;
 
-        const intensity = floor.area > 0 ? total / floor.area : 0;
-        const cost = floor.costValues[monthIndex] ?? 0;
-        const peakDemand = floor.demandValues[monthIndex] ?? 0;
-
-        const emissions = total * emissionFactor;
-
-        const metricValue =
-          metric === "cost"
-            ? cost
-            : metric === "intensity"
-            ? intensity
-            : metric === "demand"
-            ? peakDemand
-            : metric === "emissions"
-            ? emissions
-            : total;
-
-        return {
-          id,
-          ...floor,
-          total,
-          intensity,
-          emissions,
-          cost,
-          peakDemand,
-          metricValue,
-        };
-      })
-      .sort(
-        (a, b) => b.metricValue - a.metricValue
-      );
-  }, [emissionFactor, floorEntries, metric, monthIndex]);
-
-  const maxValue = ranked[0]?.metricValue ?? 1;
-
-  const formatValue = (
-    floor: (typeof ranked)[number]
-  ) => {
-    switch (metric) {
-      case "cost":
-        return `RM ${(floor.cost / 1000).toFixed(
-          1
-        )}K`;
-
-      case "intensity":
-        return `${floor.intensity.toFixed(1)}`;
-
-      case "demand":
-        return `${floor.peakDemand} kW`;
-
-      case "emissions":
-        return `${Math.round(floor.emissions).toLocaleString()} kg`;
-
-      default:
-        return Math.round(
-          floor.total
-        ).toLocaleString();
-    }
-  };
-
-  return (
-    <div className={styles.ranking}>
-      {ranked.map((floor) => (
-        <button
-          type="button"
-          key={floor.id}
-          className={`${styles.rankRow} ${
-            selected === floor.id
-              ? styles.selectedRank
-              : ""
-          }`}
-          onClick={() => onSelect(floor.id)}
-        >
-          <span>{floor.short}</span>
-
-          <span className={styles.rankTrack}>
-            <i
-              style={{
-                width: `${
-                  (floor.metricValue / maxValue) *
-                  100
-                }%`,
-              }}
-            />
-          </span>
-
-          <strong>{formatValue(floor)}</strong>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function FloorComparisonTable({
-  selected,
-  onSelect,
-  sortBy,
-  floorEntries,
-  emissionFactor,
-  monthIndex,
-}: {
-  selected: Scope;
-  onSelect: (floor: FloorId) => void;
-  sortBy: FloorSort;
-  floorEntries: FloorEntry[];
-  emissionFactor: number;
-  monthIndex: number;
-}) {
-  const ranked = floorEntries
-    .map(([id, floor]) => {
-      const total = floor.values[monthIndex] ?? 0;
-
-      const intensity = floor.area > 0 ? total / floor.area : 0;
-      const cost = floor.costValues[monthIndex] ?? 0;
-      const peakDemand = floor.demandValues[monthIndex] ?? 0;
-
-      return {
-        id,
-        ...floor,
-        total,
-        intensity,
-        carbon: total * emissionFactor,
-        cost,
-        peakDemand,
-      };
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "carbon":
-          return b.carbon - a.carbon;
-        case "cost":
-          return b.cost - a.cost;
-        case "demand":
-          return b.peakDemand - a.peakDemand;
-        default:
-          return b.total - a.total;
-      }
-    });
-
-  const averageIntensity =
-    ranked.reduce(
-      (sum, floor) => sum + floor.intensity,
-      0
-    ) / ranked.length;
-
-  return (
-    <div className={styles.tableScroll}>
-      <table className={styles.comparisonTable}>
-        <thead>
-          <tr>
-            <th>Floor</th>
-            <th>Electricity Usage</th>
-            <th>Carbon Emissions (kgCO₂e)</th>
-            <th>Cost</th>
-            <th>Peak</th>
-            <th>Employees</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {ranked.map((floor) => {
-            const highIntensity =
-              floor.intensity >
-              averageIntensity * 1.1;
-
-            return (
-              <tr
-                key={floor.id}
-                className={
-                  selected === floor.id
-                    ? styles.selectedTableRow
-                    : ""
-                }
-                onClick={() =>
-                  onSelect(floor.id)
-                }
-              >
-                <td>
-                  <strong>{floor.short}</strong>
-                </td>
-
-                <td>
-                  {Math.round(
-                    floor.total
-                  ).toLocaleString()}{" "}
-                  kWh
-                </td>
-
-                <td>
-                  {Math.round(floor.carbon).toLocaleString()}{" "}
-                  kgCO₂e
-                </td>
-
-                <td>
-                  {money(floor.cost)}
-                </td>
-
-                <td>
-                  {floor.peakDemand} kW
-                </td>
-
-                <td>
-                  {floor.employees}
-                </td>
-
-                <td>
-                  <span
-                    className={
-                      highIntensity
-                        ? styles.statusWarning
-                        : styles.statusGood
-                    }
-                  >
-                    {highIntensity
-                      ? "Attention"
-                      : "Normal"}
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function Insight({
-  icon,
-  tone,
-  title,
-  copy,
-  action,
-  onClick,
-}: {
-  icon: IconName;
-  tone:
-    | "danger"
-    | "warning"
-    | "success";
-  title: string;
-  copy: string;
-  action: string;
-  onClick: () => void;
-}) {
-  return (
-    <div>
-      <span
-        className={
-          styles[`${tone}Icon`]
-        }
-      >
-        <Icon name={icon} />
-      </span>
-
-      <p>
-        <strong>{title}</strong>
-        <small>{copy}</small>
-      </p>
-
-      <button onClick={onClick}>
-        {action}
-        <Icon name="arrow" size={11} />
-      </button>
-    </div>
-  );
-}
-
-export default function EnergyDashboard({
-  dashboardData,
-}: {
-  dashboardData: EnergyDashboardData;
-}) {
+export default function EnergyDashboard({ dashboardData }: { dashboardData: EnergyDashboardData }) {
   const { floors, emissionFactor } = dashboardData;
-
-  const floorEntries = useMemo(
-    () => Object.entries(floors) as FloorEntry[],
-    [floors]
-  );
-
-  const portfolioValues = useMemo(
-    () =>
-      months.map((_, monthIndex) =>
-        floorEntries.reduce(
-          (sum, [, floor]) =>
-            sum + (floor.values[monthIndex] ?? 0),
-          0
-        )
-      ),
-    [floorEntries]
-  );
-
-  const buildingAverageValues = useMemo(
-    () =>
-      portfolioValues.map(
-        (value) => value / Math.max(floorEntries.length, 1)
-      ),
-    [floorEntries.length, portfolioValues]
-  );
+  const floorEntries = useMemo(() => Object.entries(floors) as FloorEntry[], [floors]);
+  const floorOptions = floorEntries.map(([, floor]) => floor.label);
   const [scope, setScope] =
     useState<Scope>("ALL");
 
@@ -890,40 +370,16 @@ export default function EnergyDashboard({
   const [draftFloors, setDraftFloors] =
     useState<string[]>(["ALL"]);
 
-  const [comparison] = useState<Comparison>(
-    "building-average"
-  );
-
-  const [activeTab] =
-    useState<DashboardTab>("breakdown");
-
-  const [floorSort, setFloorSort] =
-    useState<FloorSort>("usage");
+  const [floorSort, setFloorSort] = useState<FloorSort>("change");
 
   const [mobileNavOpen, setMobileNavOpen] =
-    useState(false);
-
-  const [copilotOpen, setCopilotOpen] =
     useState(false);
 
   const [notice, setNotice] = useState<
     string | null
   >(null);
 
-  const [question, setQuestion] =
-    useState("");
-
-  const [reply, setReply] = useState(
-    "Select a suggested question or ask about the available 2025 energy data."
-  );
-
   const menuButtonRef =
-    useRef<HTMLButtonElement>(null);
-
-  const copilotButtonRef =
-    useRef<HTMLButtonElement>(null);
-
-  const copilotCloseRef =
     useRef<HTMLButtonElement>(null);
 
   const floorPickerRef =
@@ -974,1263 +430,92 @@ export default function EnergyDashboard({
       : filteredFloorEntries;
   }, [filteredFloorEntries, floors, scope]);
 
-  const data = useMemo(() => {
-    const values = months.map((_, index) =>
-      scopedFloorEntries.reduce(
-        (sum, [, floor]) => sum + (floor.values[index] ?? 0),
-        0
-      )
-    );
-    const singleFloor = scopedFloorEntries.length === 1;
 
-    return {
-      label: singleFloor
-        ? scopedFloorEntries[0][1].label
-        : appliedFloors.includes("ALL")
-        ? "All Floors"
-        : `${scopedFloorEntries.length} Selected Floors`,
-      values,
-      total: values[monthIndex] ?? 0,
-      cost: scopedFloorEntries.reduce(
-        (sum, [, floor]) =>
-          sum + (floor.costValues[monthIndex] ?? 0),
-        0
-      ),
-      area: scopedFloorEntries.reduce(
-        (sum, [, floor]) => sum + floor.area,
-        0
-      ),
-      employees: scopedFloorEntries.reduce(
-        (sum, [, floor]) => sum + floor.employees,
-        0
-      ),
-      peakDemand: scopedFloorEntries.reduce(
-        (sum, [, floor]) =>
-          sum + (floor.demandValues[monthIndex] ?? 0),
-        0
-      ),
-      usageType: singleFloor
-        ? scopedFloorEntries[0][1].usageType
-        : "Mixed",
-    };
-  }, [appliedFloors, monthIndex, scopedFloorEntries]);
+  const baselineValues = monthlyTotals(scopedFloorEntries, "baseline2025");
+  const currentValues = monthlyTotals(scopedFloorEntries, "current2026");
+  const currentUsage = currentValues[monthIndex];
+  const change = percentChange(currentUsage, baselineValues[monthIndex]);
+  const singleFloor = scopedFloorEntries.length === 1 ? scopedFloorEntries[0][1] : null;
+  const monthlyDemands = scopedFloorEntries.map(([, floor]) => floor.currentDemand2026?.[monthIndex] ?? null);
+  const peakDemand = monthlyDemands.length && monthlyDemands.every((value): value is number => value !== null)
+    ? Math.max(...monthlyDemands) : null;
+  const carbonEmissions = currentUsage === null || emissionFactor === null ? null : currentUsage * emissionFactor;
+  const scopeLabel = singleFloor?.label ?? (scopedFloorEntries.length === floorEntries.length ? "All Floors" : scopedFloorEntries.length + " Selected Floors");
+  const selectedIds = new Set(scopedFloorEntries.map(([id]) => id));
+  const relevantAnomalies = (dashboardData.anomalies ?? []).filter(issue => issue.year === 2026 && issue.monthIndices?.includes(monthIndex) && (issue.floorId === null || selectedIds.has(issue.floorId)));
+  const chatFloorId = scopedFloorEntries.length === 1 ? scopedFloorEntries[0][0] : null;
+  useEffect(() => {
+    const publishContext = () => window.dispatchEvent(new CustomEvent("energy-chatbot-context", { detail: { context: {
+      page: "dashboard", floorId: chatFloorId, floorName: scopeLabel, selectedFloor: scopeLabel,
+      month: monthNames[monthIndex], year: 2026, hasAnomalies: relevantAnomalies.length > 0,
+    } } }));
+    publishContext();
+    window.addEventListener("energy-chatbot-context-request", publishContext);
+    return () => window.removeEventListener("energy-chatbot-context-request", publishContext);
+  }, [chatFloorId, scopeLabel, monthIndex, relevantAnomalies.length]);
+  const ranked = floorEntries.map(([id, floor]) => {
+    const baseline = floor.baseline2025?.[monthIndex] ?? null;
+    const current = floor.current2026?.[monthIndex] ?? null;
+    return { id, floor, baseline, current, change: percentChange(current, baseline), employee: perEmployee(current, floor.employees) };
+  }).sort((a, b) => {
+    const first = floorSort === "change" ? a.change : floorSort === "usage" ? a.current : a.employee;
+    const second = floorSort === "change" ? b.change : floorSort === "usage" ? b.current : b.employee;
+    return first === null ? second === null ? a.id.localeCompare(b.id) : 1 : second === null ? -1 : second - first;
+  });
+  const electricitySeries: ChartSeries[] = [
+    { id: "baseline", label: "2025 Baseline", values: baselineValues, color: "#137be8" },
+    { id: "current", label: "2026 Generated", values: currentValues, color: "#0bb894" },
+  ];
+  const carbonChanges = carbonMonthlyChanges(baselineValues, currentValues, emissionFactor);
+  const flash = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(null), 2600); };
+  const selectFloor = (id: string) => { setScope(id); flash(floors[id].label + " selected"); };
+  const closeNavigation = () => { setMobileNavOpen(false); window.requestAnimationFrame(() => menuButtonRef.current?.focus()); };
 
-  const peak = Math.max(...data.values);
-
-  const peakIndex =
-    data.values.indexOf(peak);
-
-  const emissions =
-    data.total * emissionFactor;
-
-  const intensity =
-    data.total / data.area;
-
-  const previousMonthValue =
-    monthIndex > 0 ? data.values[monthIndex - 1] : undefined;
-
-  const latestChange = previousMonthValue
-    ? ((data.total - previousMonthValue) / previousMonthValue) * 100
-    : 0;
-
-  const comparisonValues =
-    scope !== "ALL" &&
-    comparison === "building-average"
-      ? buildingAverageValues
-      : undefined;
-
-  const carbonValues = data.values.map(
-    (value) => value * emissionFactor
-  );
-
-  const carbonComparisonValues = comparisonValues?.map(
-    (value) => value * emissionFactor
-  );
-
-  const electricitySeries: ChartSeries[] =
-    appliedFloors.includes("ALL") && scope === "ALL"
-      ? [
-          {
-            id: "all-floors",
-            label: "All Floors",
-            values: data.values,
-            color: floorLineColors[0],
-          },
-        ]
-      : scopedFloorEntries.map(([id, floor], index) => {
-          const floorNumber = Number(id.replace(/\D/g, ""));
-
-          return {
-            id,
-            label: floor.label,
-            values: floor.values,
-            color:
-              floorLineColors[
-                Number.isFinite(floorNumber) && floorNumber > 0
-                  ? (floorNumber - 1) % floorLineColors.length
-                  : index % floorLineColors.length
-              ],
-          };
-        });
-
-  const carbonSeries: ChartSeries[] = electricitySeries.map(
-    (item) => ({
-      ...item,
-      values: item.values.map(
-        (value) => value * emissionFactor
-      ),
-    })
-  );
-
-  const flash = (message: string) => {
-    setNotice(message);
-
-    window.setTimeout(
-      () => setNotice(null),
-      2600
-    );
-  };
-
-  const selectFloor = (
-    floor: FloorId
-  ) => {
-    setScope(floor);
-
-    flash(
-      `${floors[floor].label} selected`
-    );
-  };
-
-  const ask = (prompt: string) => {
-    setQuestion("");
-
-    const lower =
-      prompt.toLowerCase();
-
-    if (
-      lower.includes("most") ||
-      lower.includes("highest floor")
-    ) {
-      setReply(
-        "Level 10 currently has the highest annual electricity consumption in the available floor data."
-      );
-
-      return;
-    }
-
-    if (
-      lower.includes("peak") ||
-      lower.includes("higher")
-    ) {
-      setReply(
-        `${months[peakIndex]} is the highest-consumption month in the current view at ${peak.toLocaleString()} kWh. Cooling schedules and after-hours equipment use are useful areas to investigate.`
-      );
-
-      return;
-    }
-
-    if (
-      lower.includes("compare")
-    ) {
-      if (scope === "ALL") {
-        setReply(
-          "Select an individual floor to compare its monthly electricity profile with the building average."
-        );
-      } else {
-        setReply(
-          `${data.label} uses ${intensity.toFixed(
-            1
-          )} kWh/m² based on the available 2025 data. Use the comparison view to evaluate it against other floors.`
-        );
-      }
-
-      return;
-    }
-
-    setReply(
-      "Start by reviewing high-intensity floors, peak-demand periods, HVAC schedules, and equipment operating outside occupied hours."
-    );
-  };
-
-  const submit = (
-    event: FormEvent
-  ) => {
-    event.preventDefault();
-
-    if (question.trim()) {
-      ask(question);
-    }
-  };
-
-  const openCopilot = () => {
-    setCopilotOpen(true);
-
-    window.requestAnimationFrame(
-      () =>
-        copilotCloseRef.current?.focus()
-    );
-  };
-
-  const closeCopilot = () => {
-    setCopilotOpen(false);
-
-    window.requestAnimationFrame(
-      () =>
-        copilotButtonRef.current?.focus()
-    );
-  };
-
-  const closeNavigation = () => {
-    setMobileNavOpen(false);
-
-    window.requestAnimationFrame(
-      () =>
-        menuButtonRef.current?.focus()
-    );
-  };
-
-  const trapCopilotFocus = (
-    event: KeyboardEvent<HTMLElement>
-  ) => {
-    if (event.key === "Escape") {
-      closeCopilot();
-      return;
-    }
-
-    if (event.key !== "Tab") {
-      return;
-    }
-
-    const focusable = Array.from(
-      event.currentTarget.querySelectorAll<HTMLElement>(
-        "button, input, [href], select, [tabindex]:not([tabindex='-1'])"
-      )
-    ).filter(
-      (element) =>
-        !element.hasAttribute("disabled")
-    );
-
-    const first = focusable[0];
-    const last =
-      focusable[focusable.length - 1];
-
-    if (
-      event.shiftKey &&
-      document.activeElement === first
-    ) {
-      event.preventDefault();
-      last?.focus();
-    }
-
-    if (
-      !event.shiftKey &&
-      document.activeElement === last
-    ) {
-      event.preventDefault();
-      first?.focus();
-    }
-  };
-
-  return (
-    <div className={styles.appShell}>
-
-      <Sidebar
-        items={sidebarItems}
-        activeHref="/"
-        mobileOpen={mobileNavOpen}
-        userInitials="HW"
-        userName="Heng Wen"
-        userSubtitle="Energy workspace"
-      />
-
-      <main
-        className={styles.workspace}
-        id="explorer"
-      >
-        <header
-          className={styles.topbar}
-        >
-          <button
-            ref={menuButtonRef}
-            className={
-              styles.mobileMenu
-            }
-            onClick={() =>
-              setMobileNavOpen(
-                !mobileNavOpen
-              )
-            }
-            aria-label="Toggle navigation"
-            aria-expanded={
-              mobileNavOpen
-            }
-            aria-controls="primary-navigation"
-          >
-            <Icon
-              name={
-                mobileNavOpen
-                  ? "close"
-                  : "menu"
-              }
-            />
-          </button>
-
-          <div className={styles.pageTitle}>
-            <h1>Dashboard</h1>
+  return (<div className={styles.appShell}>
+    <Sidebar items={sidebarItems} activeHref="/" mobileOpen={mobileNavOpen} userInitials="HW" userName="Heng Wen" userSubtitle="Energy workspace" />
+    <main className={styles.workspace} id="explorer">
+      <header className={styles.topbar}>
+        <button ref={menuButtonRef} className={styles.mobileMenu} onClick={() => setMobileNavOpen(!mobileNavOpen)} aria-label="Toggle navigation" aria-expanded={mobileNavOpen} aria-controls="primary-navigation"><Icon name={mobileNavOpen ? "close" : "menu"} /></button>
+        <div className={styles.pageTitle}><h1>Dashboard</h1><p>{dashboardData.building?.name ?? "Energy portfolio"} · 2026 generated prototype data</p></div>
+        <div className={styles.headerPickers}>
+          <div className={styles.monthPicker} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setMonthPickerOpen(false); }} onKeyDown={event => { if (event.key === "Escape") setMonthPickerOpen(false); }}>
+            <button type="button" className={styles.monthPickerTrigger} aria-haspopup="dialog" aria-expanded={monthPickerOpen} aria-controls="dashboard-month-picker" aria-label={`Reporting Month: ${monthNames[monthIndex]} 2026`} onClick={() => setMonthPickerOpen(open => !open)}><Icon name="calendar" size={17} /><span>{monthNames[monthIndex]} 2026</span><i aria-hidden="true" /></button>
+            {monthPickerOpen ? <div id="dashboard-month-picker" className={styles.monthPickerPopover} role="dialog" aria-label="Choose a reporting month in 2026"><strong className={styles.monthPickerYear}>Reporting Month · 2026</strong><div className={styles.monthGrid}>{monthNames.map((monthName, index) => <button type="button" key={monthName} className={monthIndex === index ? styles.monthSelected : undefined} aria-pressed={monthIndex === index} onClick={() => { setSelectedMonth(String(index)); setMonthPickerOpen(false); }}>{monthName}</button>)}</div></div> : null}
           </div>
-
-          <div className={styles.headerPickers}>
-            <div
-              className={styles.monthPicker}
-            onBlur={(event) => {
-              if (
-                !event.currentTarget.contains(
-                  event.relatedTarget
-                )
-              ) {
-                setMonthPickerOpen(false);
-              }
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                setMonthPickerOpen(false);
-              }
-            }}
-          >
-            <button
-              type="button"
-              className={styles.monthPickerTrigger}
-              aria-haspopup="dialog"
-              aria-expanded={monthPickerOpen}
-              aria-controls="dashboard-month-picker"
-              onClick={() =>
-                setMonthPickerOpen((open) => !open)
-              }
-            >
-              <Icon name="calendar" size={17} />
-              <span>{months[Number(selectedMonth)]} 2025</span>
-              <i aria-hidden="true" />
-            </button>
-
-            {monthPickerOpen ? (
-              <div
-                id="dashboard-month-picker"
-                className={styles.monthPickerPopover}
-                role="dialog"
-                aria-label="Choose a month in 2025"
-              >
-                <strong className={styles.monthPickerYear}>
-                  2025
-                </strong>
-
-                <div className={styles.monthGrid}>
-                  {monthNames.map((monthName, index) => {
-                    const value = String(index);
-                    const selected = selectedMonth === value;
-
-                    return (
-                      <button
-                        type="button"
-                        key={monthName}
-                        className={
-                          selected
-                            ? styles.monthSelected
-                            : undefined
-                        }
-                        aria-pressed={selected}
-                        onClick={() => {
-                          setSelectedMonth(value);
-                          setMonthPickerOpen(false);
-                        }}
-                      >
-                        {monthName}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-            </div>
-
-            <div
-              ref={floorPickerRef}
-              className={styles.floorPicker}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") {
-                  setDraftFloors(appliedFloors);
-                  setFloorPickerOpen(false);
-                }
-              }}
-            >
-              <button
-                type="button"
-                className={styles.floorPickerTrigger}
-                aria-haspopup="dialog"
-                aria-expanded={floorPickerOpen}
-                aria-controls="dashboard-floor-picker"
-                onClick={() => {
-                  setDraftFloors(appliedFloors);
-                  setFloorPickerOpen((open) => !open);
-                }}
-              >
-                <Icon name="building" size={17} />
-                <span>
-                  {appliedFloors.includes("ALL")
-                    ? "All Floors"
-                    : `${appliedFloors.length} Floors`}
-                </span>
-                <i aria-hidden="true" />
-              </button>
-
-              {floorPickerOpen ? (
-                <div
-                  id="dashboard-floor-picker"
-                  className={styles.floorPickerPopover}
-                  role="dialog"
-                  aria-label="Choose floors"
-                >
-                  <div className={styles.floorPickerHead}>
-                    <strong>Select floors</strong>
-                  </div>
-
-                  <div className={styles.floorOptions}>
-                    <label className={styles.allFloorsOption}>
-                      <input
-                        type="checkbox"
-                        checked={draftFloors.includes("ALL")}
-                        onChange={() => setDraftFloors(["ALL"])}
-                      />
-                      <span>All Floors</span>
-                    </label>
-
-                    {floorOptions.map((floor) => (
-                      <label key={floor}>
-                        <input
-                          type="checkbox"
-                          checked={draftFloors.includes(floor)}
-                          onChange={() => {
-                            setDraftFloors((current) => {
-                              const withoutAll = current.filter(
-                                (item) => item !== "ALL"
-                              );
-
-                              return withoutAll.includes(floor)
-                                ? withoutAll.filter(
-                                    (item) => item !== floor
-                                  )
-                                : [...withoutAll, floor];
-                            });
-                          }}
-                        />
-                        <span>{floor}</span>
-                      </label>
-                    ))}
-                  </div>
-
-                  <div className={styles.floorPickerFooter}>
-                    <span aria-live="polite">
-                      {!draftFloors.includes("ALL") &&
-                      draftFloors.length === 1
-                        ? "Select 1 more floor"
-                        : draftFloors.includes("ALL")
-                        ? "All floors selected"
-                        : `${draftFloors.length} floors selected`}
-                    </span>
-                    <div>
-                      <button
-                        type="button"
-                        className={styles.floorCancel}
-                        onClick={() => {
-                          setDraftFloors(appliedFloors);
-                          setFloorPickerOpen(false);
-                        }}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.floorApply}
-                        disabled={
-                          !draftFloors.includes("ALL") &&
-                          draftFloors.length < 2
-                        }
-                        onClick={() => {
-                          setAppliedFloors(draftFloors);
-                          setScope("ALL");
-                          setFloorPickerOpen(false);
-                        }}
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </div>
+          <div ref={floorPickerRef} className={styles.floorPicker} onKeyDown={event => { if (event.key === "Escape") { setDraftFloors(appliedFloors); setFloorPickerOpen(false); } }}>
+            <button type="button" className={styles.floorPickerTrigger} aria-haspopup="dialog" aria-expanded={floorPickerOpen} aria-controls="dashboard-floor-picker" onClick={() => { setDraftFloors(appliedFloors); setFloorPickerOpen(open => !open); }}><Icon name="building" size={17} /><span>{scope !== "ALL" ? floors[scope].label : appliedFloors.includes("ALL") ? "All Floors" : appliedFloors.length === 1 ? appliedFloors[0] : `${appliedFloors.length} Floors`}</span><i aria-hidden="true" /></button>
+            {floorPickerOpen ? <div id="dashboard-floor-picker" className={styles.floorPickerPopover} role="dialog" aria-label="Choose floors"><div className={styles.floorPickerHead}><strong>Select floors</strong></div><div className={styles.floorOptions}>
+              <label className={styles.allFloorsOption}><input type="checkbox" checked={draftFloors.includes("ALL")} onChange={() => setDraftFloors(["ALL"])} /><span>All Floors</span></label>
+              {floorOptions.map(floor => <label key={floor}><input type="checkbox" checked={draftFloors.includes(floor)} onChange={() => setDraftFloors(current => { const selected = current.filter(item => item !== "ALL"); return selected.includes(floor) ? selected.filter(item => item !== floor) : [...selected, floor]; })} /><span>{floor}</span></label>)}
+            </div><div className={styles.floorPickerFooter}><span aria-live="polite">{draftFloors.includes("ALL") ? "All floors selected" : `${draftFloors.length} floors selected`}</span><div><button type="button" className={styles.floorCancel} onClick={() => { setDraftFloors(appliedFloors); setFloorPickerOpen(false); }}>Cancel</button><button type="button" className={styles.floorApply} disabled={!draftFloors.length} onClick={() => { setAppliedFloors(draftFloors); setScope("ALL"); setFloorPickerOpen(false); }}>Apply</button></div></div></div> : null}
           </div>
-        </header>
-
-        <section
-          className={styles.metricsGrid}
-          aria-label="Energy summary"
-        >
-          <StatCard
-            icon={<Icon name="bolt" size={24} />}
-            label={
-              scope === "ALL"
-                ? "Total Electricity"
-                : "Floor Consumption"
-            }
-            value={compactEnergy(data.total)}
-            deltaText={`${Math.abs(latestChange).toFixed(1)}%`}
-            trend={latestChange <= 0 ? "down" : "up"}
-            tone={latestChange <= 0 ? "positive" : "negative"}
-            comparisonText="vs. previous month"
-          />
-
-          <StatCard
-            icon={<Icon name="stack" size={24} />}
-            label={
-              scope === "ALL"
-                ? "Electricity Cost"
-                : "Floor Cost"
-            }
-            value={`RM ${(data.cost / 1000).toFixed(1)}K`}
-            comparisonText="Based on 2025 billed records"
-          />
-
-          <StatCard
-            icon={<Icon name="chart" size={24} />}
-            label={
-              scope === "ALL"
-                ? "Peak Demand"
-                : "Energy Intensity"
-            }
-            value={
-              scope === "ALL"
-                ? `${data.peakDemand.toLocaleString()} kW`
-                : `${intensity.toFixed(1)} kWh/m²`
-            }
-            deltaText={scope === "ALL" ? "10.5%" : undefined}
-            trend={scope === "ALL" ? "up" : "neutral"}
-            tone={scope === "ALL" ? "negative" : "neutral"}
-            comparisonText={
-              scope === "ALL"
-                ? `${months[peakIndex]} has the highest monthly usage`
-                : "Normalized by floor area"
-            }
-          />
-
-          <StatCard
-            icon={
-              <Icon
-                name={scope === "ALL" ? "leaf" : "building"}
-                size={24}
-              />
-            }
-            label={
-              scope === "ALL"
-                ? "Carbon Emissions"
-                : "Peak Demand"
-            }
-            value={
-              scope === "ALL"
-                ? `${Math.round(emissions).toLocaleString()} kgCO₂e`
-                : `${data.peakDemand} kW`
-            }
-            comparisonText={
-              scope === "ALL"
-                ? `Estimated using ${emissionFactor} kgCO₂e/kWh`
-                : `${data.employees} employees`
-            }
-          />
+        </div>
+      </header>
+        <section className={styles.metricsGrid} aria-label="Energy summary">
+          <StatCard icon={<Icon name="bolt" size={24} />} label="2026 Consumption" value={formatEnergy(currentUsage)} comparisonText={monthNames[monthIndex] + " · generated prototype data"} tone="neutral" trend="neutral" />
+          <StatCard icon={<Icon name="trend" size={24} />} label="Change vs 2025 Baseline" value={formatChange(change)} comparisonText="Same reporting month" tone={change === null || change === 0 ? "neutral" : change > 0 ? "negative" : "positive"} trend={change === null || change === 0 ? "neutral" : change > 0 ? "up" : "down"} />
+          <StatCard icon={<Icon name="chart" size={24} />} label={singleFloor ? "Peak Demand" : "Highest Floor Peak Demand"} value={peakDemand === null ? "Unavailable" : `${peakDemand.toLocaleString("en-MY")} kW`} comparisonText={`${monthNames[monthIndex]} 2026 · generated workbook demand`} tone="neutral" trend="neutral" />
+          <StatCard icon={<Icon name="leaf" size={24} />} label="Carbon Emissions" value={carbonEmissions === null ? "Unavailable" : `${carbonEmissions.toLocaleString("en-MY", { maximumFractionDigits: 1 })} kg CO2e`} comparisonText={emissionFactor === null ? "Emission factor unavailable" : `Estimated using 2025 factor: ${emissionFactor} kg CO2e/kWh`} tone="neutral" trend="neutral" />
         </section>
-
-        <section
-          className={
-            styles.analyticsGrid
-          }
-        >
-          <article
-            className={`${styles.panel} ${styles.consumptionPanel}`}
-          >
-            <PanelHead
-              title="Monthly Electricity Consumption (kWh)"
-              subtitle={`${data.label} · ${monthNames[monthIndex]} 2025 selected`}
-            />
-
-            <LineChart
-              values={data.values}
-              series={electricitySeries}
-              activeMonthIndex={monthIndex}
-              comparisonValues={
-                comparisonValues
-              }
-              label={`${data.label} monthly electricity consumption in 2025`}
-            />
-          </article>
-
-          <article
-            className={`${styles.panel} ${styles.consumptionPanel} ${styles.carbonPanel}`}
-          >
-            <PanelHead
-              title="Monthly Carbon Emissions (kgCO₂e)"
-              subtitle={`${data.label} · ${monthNames[monthIndex]} 2025 selected`}
-            />
-
-            <LineChart
-              values={carbonValues}
-              series={carbonSeries}
-              activeMonthIndex={monthIndex}
-              comparisonValues={carbonComparisonValues}
-              formatTick={(value) =>
-                Math.round(value).toLocaleString()
-              }
-              formatValue={(value) =>
-                `${value.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })} kgCO₂e`
-              }
-              label={`${data.label} estimated monthly carbon emissions in 2025`}
-            />
+        <section className={styles.analyticsGrid}>
+          <article className={`${styles.panel} ${styles.consumptionPanel}`}><PanelHead title="Monthly Electricity Consumption (kWh)" subtitle={scopeLabel + " · 2025 baseline vs 2026 generated"} /><LineChart series={electricitySeries} activeMonthIndex={monthIndex} label={scopeLabel + " monthly electricity: 2025 baseline and 2026 generated"} /></article>
+          <article className={`${styles.panel} ${styles.consumptionPanel} ${styles.carbonPanel}`}><PanelHead title="Monthly Carbon Emissions Change vs 2025" /><CarbonChangeChart data={carbonChanges} activeMonthIndex={monthIndex} label={scopeLabel + " monthly carbon emissions percentage change: 2026 generated versus 2025 baseline"} /></article>
+        </section>
+        <section className={styles.dynamicSection}>
+          <article className={`${styles.panel} ${styles.floorComparisonPanel}`}>
+            <PanelHead title="Floor Performance" subtitle={monthNames[monthIndex] + " 2026 · F01–F16 compared with the same month in 2025"} action={<label className={styles.sortControl}><span>Sort by</span><select value={floorSort} onChange={event => setFloorSort(event.target.value as FloorSort)}><option value="change">Change vs baseline</option><option value="usage">2026 consumption</option><option value="employee">Energy per employee</option></select></label>} />
+            <div className={styles.tableScroll}><table className={styles.comparisonTable}><thead><tr><th>Floor</th><th>Usage type</th><th>2025 baseline (kWh)</th><th>2026 generated (kWh)</th><th>Change vs baseline</th><th>Employees (2025)</th><th>kWh / employee</th></tr></thead><tbody>{ranked.map(row => <tr key={row.id} className={selectedIds.has(row.id) ? styles.selectedTableRow : undefined} onClick={() => selectFloor(row.id)}><td><button type="button" onClick={event => { event.stopPropagation(); selectFloor(row.id); }}>{row.floor.short}</button></td><td>{row.floor.usageType}</td><td>{formatEnergy(row.baseline)}</td><td>{formatEnergy(row.current)}</td><td><span className={row.change === null || row.change === 0 ? undefined : row.change > 0 ? styles.statusWarning : styles.statusGood}>{formatChange(row.change)}</span></td><td>{row.floor.employees ?? "Unavailable"}</td><td>{row.employee === null ? "Unavailable" : row.employee.toFixed(1)}</td></tr>)}</tbody></table></div>
+            <p className={styles.comparisonHighlight}>Per-employee comparisons use 2025 annual-average occupancy. Floors without a positive employee count remain unavailable.</p>
           </article>
         </section>
-
-        <section
-          className={
-            styles.dynamicSection
-          }
-        >
-          {activeTab ===
-          "summary" ? (
-            <div
-              className={
-                styles.summaryGrid
-              }
-            >
-              <article
-                className={styles.panel}
-              >
-                <PanelHead
-                  title="Performance Summary"
-                  subtitle={
-                    scope === "ALL"
-                      ? "Building-wide energy indicators"
-                      : `${data.label} performance context`
-                  }
-                />
-
-                <div
-                  className={
-                    styles.summaryStats
-                  }
-                >
-                  <div>
-                    <span>
-                      Peak Month
-                    </span>
-                    <strong>
-                      {
-                        months[
-                          peakIndex
-                        ]
-                      }{" "}
-                      2025
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>
-                      Peak Consumption
-                    </span>
-                    <strong>
-                      {peak.toLocaleString()}{" "}
-                      kWh
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>
-                      Energy Intensity
-                    </span>
-                    <strong>
-                      {intensity.toFixed(
-                        1
-                      )}{" "}
-                      kWh/m²
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>
-                      Employees
-                    </span>
-                    <strong>
-                      {data.employees}
-                    </strong>
-                  </div>
-                </div>
-              </article>
-
-              <article
-                className={styles.panel}
-              >
-                <PanelHead
-                  title="Current Context"
-                  subtitle="Selected dashboard scope"
-                />
-
-                <div
-                  className={
-                    styles.detailsList
-                  }
-                >
-                  <div>
-                    <span>Building</span>
-                    <strong>CGC</strong>
-                  </div>
-
-                  <div>
-                    <span>Scope</span>
-                    <strong>
-                      {data.label}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>
-                      Usage Type
-                    </span>
-                    <strong>
-                      {data.usageType}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>Area</span>
-                    <strong>
-                      {data.area.toLocaleString()}{" "}
-                      m²
-                    </strong>
-                  </div>
-                </div>
-              </article>
-            </div>
-          ) : null}
-
-          {activeTab ===
-          "breakdown" ? (
-            <div className={styles.comparisonBreakdown}>
-              <article
-                className={`${styles.panel} ${styles.floorComparisonPanel}`}
-              >
-                <PanelHead
-                  title="Floor Comparison Breakdown"
-                  subtitle={`${monthNames[monthIndex]} 2025 · ${filteredFloorEntries.length} floors`}
-                  action={
-                    <label className={styles.sortControl}>
-                      <span>Sort by</span>
-                      <select
-                        value={floorSort}
-                        onChange={(event) =>
-                          setFloorSort(
-                            event.target.value as FloorSort
-                          )
-                        }
-                      >
-                        <option value="usage">Electricity usage</option>
-                        <option value="carbon">Carbon emissions</option>
-                        <option value="cost">Cost</option>
-                        <option value="demand">Peak demand</option>
-                      </select>
-                    </label>
-                  }
-                />
-
-                <FloorComparisonTable
-                  selected={scope}
-                  sortBy={floorSort}
-                  floorEntries={filteredFloorEntries}
-                  emissionFactor={emissionFactor}
-                  monthIndex={monthIndex}
-                  onSelect={
-                    selectFloor
-                  }
-                />
-              </article>
-            </div>
-          ) : null}
-
-          {activeTab ===
-          "comparison" ? (
-            <div
-              className={
-                styles.explorerGrid
-              }
-            >
-              <article
-                className={styles.panel}
-              >
-                <PanelHead
-                  title="Selected Floor"
-                  subtitle={
-                    scope === "ALL"
-                      ? "Choose a floor from the ranking"
-                      : data.label
-                  }
-                />
-
-                <div
-                  className={
-                    styles.comparisonHighlight
-                  }
-                >
-                  {scope === "ALL" ? (
-                    <p>
-                      Select a floor to
-                      compare it with the
-                      building average.
-                    </p>
-                  ) : (
-                    <>
-                      <span>
-                        Energy Intensity
-                      </span>
-
-                      <strong>
-                        {intensity.toFixed(
-                          1
-                        )}{" "}
-                        kWh/m²
-                      </strong>
-
-                      <small>
-                        Building average
-                        comparison shown in
-                        the monthly chart.
-                      </small>
-                    </>
-                  )}
-                </div>
-              </article>
-
-              <article
-                className={styles.panel}
-              >
-                <PanelHead
-                  title="Floor Comparison"
-                  subtitle="All available floors"
-                />
-
-                <FloorComparisonTable
-                  selected={scope}
-                  sortBy={floorSort}
-                  floorEntries={filteredFloorEntries}
-                  emissionFactor={emissionFactor}
-                  monthIndex={monthIndex}
-                  onSelect={
-                    selectFloor
-                  }
-                />
-              </article>
-            </div>
-          ) : null}
-
-          {activeTab === "demand" ? (
-            <div
-              className={
-                styles.explorerGrid
-              }
-            >
-              <article
-                className={styles.panel}
-              >
-                <PanelHead
-                  title="Peak Demand by Floor"
-                  subtitle="Maximum recorded electrical demand"
-                  unit="kW"
-                />
-
-                <FloorRanking
-                  selected={scope}
-                  metric="demand"
-                  floorEntries={filteredFloorEntries}
-                  emissionFactor={emissionFactor}
-                  monthIndex={monthIndex}
-                  onSelect={
-                    selectFloor
-                  }
-                />
-              </article>
-
-              <article
-                className={styles.panel}
-              >
-                <PanelHead
-                  title="Demand Summary"
-                  subtitle="Peak-load context"
-                />
-
-                <div
-                  className={
-                    styles.summaryStats
-                  }
-                >
-                  <div>
-                    <span>
-                      Selected Peak
-                    </span>
-                    <strong>
-                      {data.peakDemand} kW
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>
-                      Peak Month
-                    </span>
-                    <strong>
-                      {
-                        months[
-                          peakIndex
-                        ]
-                      }
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>
-                      Monthly Peak Usage
-                    </span>
-                    <strong>
-                      {peak.toLocaleString()}{" "}
-                      kWh
-                    </strong>
-                  </div>
-                </div>
-              </article>
-            </div>
-          ) : null}
-
-          {activeTab === "details" ? (
-            <div
-              className={
-                styles.detailsGrid
-              }
-            >
-              <article
-                className={styles.panel}
-              >
-                <PanelHead
-                  title="Floor Details"
-                  subtitle={
-                    scope === "ALL"
-                      ? "Building portfolio summary"
-                      : data.label
-                  }
-                />
-
-                <div
-                  className={
-                    styles.detailsList
-                  }
-                >
-                  <div>
-                    <span>Scope</span>
-                    <strong>
-                      {data.label}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>Area</span>
-                    <strong>
-                      {data.area.toLocaleString()}{" "}
-                      m²
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>
-                      Employees
-                    </span>
-                    <strong>
-                      {data.employees}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>
-                      Usage Type
-                    </span>
-                    <strong>
-                      {data.usageType}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>
-                      Annual Cost
-                    </span>
-                    <strong>
-                      {money(
-                        data.cost
-                      )}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>
-                      Emissions
-                    </span>
-                    <strong>
-                      {Math.round(
-                        emissions
-                      ).toLocaleString()}{" "}
-                      kgCO₂e
-                    </strong>
-                  </div>
-                </div>
-              </article>
-            </div>
-          ) : null}
-
-          {activeTab ===
-          "insights" ? (
-            <article
-              className={`${styles.panel} ${styles.insightsPanel}`}
-              id="insights"
-            >
-              <PanelHead
-                title="Energy Insights"
-                subtitle="Signals translated into practical next steps"
-              />
-
-              <div
-                className={
-                  styles.insightList
-                }
-              >
-                <Insight
-                  icon="alert"
-                  tone="danger"
-                  title="High-consumption period"
-                  copy={`${months[peakIndex]} recorded the highest usage in the current view at ${peak.toLocaleString()} kWh.`}
-                  action="Investigate"
-                  onClick={() =>
-                    openCopilot()
-                  }
-                />
-
-                <Insight
-                  icon="building"
-                  tone="warning"
-                  title="Floor requires attention"
-                  copy="Level 10 has the highest annual electricity consumption in the available floor records."
-                  action="View floor"
-                  onClick={() =>
-                    selectFloor("F10")
-                  }
-                />
-
-                <Insight
-                  icon="trend"
-                  tone="success"
-                  title="Efficiency opportunity"
-                  copy="Review high-intensity floors and equipment operating outside occupied hours."
-                  action="Ask Copilot"
-                  onClick={
-                    openCopilot
-                  }
-                />
-              </div>
-            </article>
-          ) : null}
-        </section>
-
-        <footer
-          className={styles.footer}
-          id="sustainability"
-        >
-          <span>
-            Source: 2025 energy
-            records in the CGC
-            workbook.
-          </span>
-
-          <span>
-            Emissions are estimates;
-            confirm the applicable
-            emission factor before
-            production use.
-          </span>
-        </footer>
+        <footer className={styles.footer}><span>Sources: 2025 actual baseline and generated 2026 prototype workbook. 2026 values are not actual utility readings.</span><span>Emissions use the available 2025 factor; employee comparisons use 2025 occupancy metadata.</span></footer>
       </main>
-
-      <button
-        ref={copilotButtonRef}
-        className={
-          styles.copilotFloatingButton
-        }
-        onClick={openCopilot}
-        aria-expanded={copilotOpen}
-        aria-controls="energy-copilot"
-      >
-        <Icon
-          name="spark"
-          size={18}
-        />
-        Ask Copilot
-      </button>
-
-      <aside
-        id="energy-copilot"
-        className={`${styles.copilotRail} ${
-          copilotOpen
-            ? styles.copilotOpen
-            : ""
-        }`}
-        aria-label="Energy Copilot"
-        onKeyDown={
-          trapCopilotFocus
-        }
-      >
-        <div
-          className={
-            styles.copilotHead
-          }
-        >
-          <span>
-            <Icon name="spark" />
-          </span>
-
-          <div>
-            <strong>
-              Energy Copilot
-            </strong>
-            <small>Beta</small>
-          </div>
-
-          <button
-            ref={copilotCloseRef}
-            onClick={closeCopilot}
-            aria-label="Close Energy Copilot"
-          >
-            <Icon
-              name="close"
-              size={18}
-            />
-          </button>
-        </div>
-
-        <div
-          className={
-            styles.copilotContext
-          }
-        >
-          <span>Current context</span>
-          <strong>
-            {data.label} · 2025
-          </strong>
-        </div>
-
-        <p
-          className={
-            styles.copilotIntro
-          }
-        >
-          Ask questions about your
-          electricity usage, floor
-          performance and energy-saving
-          opportunities.
-        </p>
-
-        <div
-          className={styles.reply}
-          aria-live="polite"
-        >
-          <Icon
-            name="spark"
-            size={17}
-          />
-
-          <p>{reply}</p>
-        </div>
-
-        <div
-          className={styles.prompts}
-        >
-          {[
-            "Why was usage higher in the peak month?",
-            "Which floor consumes the most electricity?",
-            "Compare this floor with the building average.",
-            "Show energy-saving opportunities.",
-          ].map((prompt) => (
-            <button
-              key={prompt}
-              onClick={() =>
-                ask(prompt)
-              }
-            >
-              {prompt}
-
-              <Icon
-                name="arrow"
-                size={12}
-              />
-            </button>
-          ))}
-        </div>
-
-        <form
-          className={styles.askForm}
-          onSubmit={submit}
-        >
-          <label htmlFor="copilot-question">
-            Ask about your energy data
-          </label>
-
-          <div>
-            <input
-              id="copilot-question"
-              value={question}
-              onChange={(event) =>
-                setQuestion(
-                  event.target.value
-                )
-              }
-              placeholder="Ask a question…"
-            />
-
-            <button
-              type="submit"
-              aria-label="Send question"
-            >
-              <Icon
-                name="send"
-                size={18}
-              />
-            </button>
-          </div>
-        </form>
-      </aside>
 
       {mobileNavOpen ? (
         <button
           className={styles.scrim}
           aria-label="Close navigation"
           onClick={closeNavigation}
-        />
-      ) : null}
-
-      {copilotOpen ? (
-        <button
-          className={
-            styles.copilotScrim
-          }
-          aria-label="Close Energy Copilot"
-          onClick={closeCopilot}
         />
       ) : null}
 

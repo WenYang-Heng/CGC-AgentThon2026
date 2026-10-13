@@ -201,3 +201,37 @@
     transition: none;
   }
 }
+
+.copilotSignIn {
+  display: grid;
+  gap: 7px;
+  margin-top: auto;
+  padding: 12px 10px;
+  color: #d8e6f4;
+  background: #142a40;
+  border: 1px solid #29445f;
+  border-radius: 9px;
+}
+
+.copilotSignIn strong,
+.copilotSignIn small {
+  display: block;
+}
+
+.copilotSignIn strong { color: #fff; font-size: 11px; }
+.copilotSignIn small { color: #9eb1c5; font-size: 9px; line-height: 1.4; }
+.copilotSignIn .copilotError { color: #ffb4ab; }
+.copilotSignIn button {
+  padding: 8px 10px;
+  color: #06231d;
+  background: #19d6ad;
+  border: 0;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.copilotSignIn button:disabled { cursor: wait; opacity: .65; }
+
+.copilotSignIn + .profile { margin-top: 10px; }
