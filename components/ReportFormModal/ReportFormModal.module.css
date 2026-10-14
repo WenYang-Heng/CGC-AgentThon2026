@@ -26,6 +26,7 @@
 .description textarea::placeholder{color:#8b96a6;font-weight:400;opacity:1}
 .fieldGrid select:focus,.description textarea:focus{border-color:#137be8;box-shadow:0 0 0 3px rgba(19,123,232,.12)}
 .description small{color:#7a8799;font-size:9px;font-weight:500}
+.error{margin:16px 0 0;padding:10px 12px;color:#a32121;background:#fff1f1;border:1px solid #f2c7c7;border-radius:8px;font-size:11px;line-height:1.45}
 .footer{display:flex;justify-content:flex-end;gap:9px;margin:22px -22px -22px;padding:16px 22px;background:#f8fafc;border-top:1px solid #e6ecf2}
 .footer button{height:40px;padding:0 17px;border-radius:8px;font:inherit;font-size:11px;font-weight:750;cursor:pointer}
 .cancel{color:#536277;background:transparent;border:0}

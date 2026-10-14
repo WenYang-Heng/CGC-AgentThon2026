@@ -4,16 +4,17 @@ import { useCallback, useMemo, useState } from "react";
 import Sidebar from "@/components/Sidebar/Sidebar";
 import ReportFormModal from "@/components/ReportFormModal/ReportFormModal";
 import ReportTable, { EnergyWasteReport } from "@/components/ReportTable/ReportTable";
+import { createEnergyWasteReport } from "@/services/chatbot-service";
 import styles from "./report-energy-waste.module.css";
 
 type Tab = "active" | "review" | "resolved";
 
 const initialReports: EnergyWasteReport[] = [
   { id: "EWR-1048", issue: "Air Conditioning", location: "Floor 8 · Meeting Room", dateReported: "29 Sep 2026", status: "Under Review" },
-  { id: "EWR-1047", issue: "Lights", location: "Floor 12 · Open Office", dateReported: "28 Sep 2026", status: "Open" },
+  { id: "EWR-1047", issue: "Lights", location: "Floor 12 · Open Office", dateReported: "28 Sep 2026", status: "Active" },
   { id: "EWR-1046", issue: "Equipment", location: "Floor 4 · Pantry", dateReported: "27 Sep 2026", status: "Under Review" },
   { id: "EWR-1045", issue: "Lights", location: "Floor 15 · Training Room", dateReported: "25 Sep 2026", status: "Resolved" },
-  { id: "EWR-1044", issue: "Equipment", location: "Floor 2 · Server Room", dateReported: "24 Sep 2026", status: "Open" },
+  { id: "EWR-1044", issue: "Equipment", location: "Floor 2 · Server Room", dateReported: "24 Sep 2026", status: "Active" },
   { id: "EWR-1043", issue: "Air Conditioning", location: "Floor 10 · Reception", dateReported: "22 Sep 2026", status: "Resolved" },
 ];
 
@@ -28,6 +29,8 @@ export default function ReportEnergyWastePage() {
   const [reports, setReports] = useState(initialReports);
   const [modalOpen, setModalOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const visibleReports = useMemo(() => reports.filter((report) => {
     if (tab === "active") return report.status !== "Resolved";
@@ -58,12 +61,27 @@ export default function ReportEnergyWastePage() {
         </section>
       </main>
       {mobileNavOpen && <button type="button" className={styles.scrim} aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />}
-      <ReportFormModal open={modalOpen} onClose={closeModal} onSubmit={(report) => {
-        const nextId = `EWR-${1049 + reports.length - initialReports.length}`;
-        const dateReported = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date());
-        setReports((current) => [{ ...report, id: nextId, dateReported, status: "Open" }, ...current]);
-        setTab("active");
-        closeModal();
+      <ReportFormModal open={modalOpen} submitting={submitting} error={submitError} onClose={closeModal} onSubmit={async (report) => {
+        setSubmitting(true);
+        setSubmitError(null);
+        try {
+          const result = await createEnergyWasteReport({
+            issueType: report.issue,
+            floorId: report.floorId,
+            floorName: report.floorName,
+            roomType: report.roomType,
+            description: report.description,
+          });
+          if (!result.success || !result.reportId) throw new Error(result.message || "The report could not be created.");
+          const dateReported = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date());
+          setReports((current) => [{ id: result.reportId!, issue: report.issue, location: `${report.floorName} · ${report.roomType}`, dateReported, status: result.status ?? "Active" }, ...current]);
+          setTab("active");
+          closeModal();
+        } catch (error) {
+          setSubmitError(error instanceof Error ? error.message : "The report could not be created.");
+        } finally {
+          setSubmitting(false);
+        }
       }} />
     </div>
   );

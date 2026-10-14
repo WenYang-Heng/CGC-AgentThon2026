@@ -9,7 +9,9 @@ type Issue = EnergyWasteReport["issue"];
 type Props = {
   open: boolean;
   onClose: () => void;
-  onSubmit: (report: Omit<EnergyWasteReport, "id" | "dateReported" | "status">) => void;
+  submitting?: boolean;
+  error?: string | null;
+  onSubmit: (report: { issue: Issue; floorId: string; floorName: string; roomType: string; description: string }) => void;
 };
 
 const issues: { name: Issue; icon: React.ReactNode }[] = [
@@ -20,7 +22,7 @@ const issues: { name: Issue; icon: React.ReactNode }[] = [
 
 const rooms = ["Open Office", "Meeting Room", "Pantry", "Server Room", "Reception", "Training Room", "Utility Room"];
 
-export default function ReportFormModal({ open, onClose, onSubmit }: Props) {
+export default function ReportFormModal({ open, onClose, submitting = false, error, onSubmit }: Props) {
   const [issue, setIssue] = useState<Issue>("Lights");
   const [floor, setFloor] = useState("");
   const [room, setRoom] = useState("");
@@ -57,8 +59,7 @@ export default function ReportFormModal({ open, onClose, onSubmit }: Props) {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    onSubmit({ issue, location: `Floor ${floor} · ${room}` });
-    setDescription("");
+    onSubmit({ issue, floorId: `F${floor.padStart(2, "0")}`, floorName: `Floor ${floor}`, roomType: room, description: description.trim() });
   };
 
   return (
@@ -69,7 +70,7 @@ export default function ReportFormModal({ open, onClose, onSubmit }: Props) {
             <span className={styles.headerIcon}><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg></span>
             <div><h2 id="report-dialog-title">Create energy waste report</h2></div>
           </div>
-          <button ref={firstControlRef} type="button" className={styles.close} onClick={onClose} aria-label="Close report form"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
+          <button ref={firstControlRef} type="button" className={styles.close} onClick={onClose} disabled={submitting} aria-label="Close report form"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
         </header>
 
         <form onSubmit={submit}>
@@ -91,9 +92,10 @@ export default function ReportFormModal({ open, onClose, onSubmit }: Props) {
 
           <label className={styles.description}>Describe the issue<textarea required minLength={10} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Please describe the issue you encountered." rows={5} /><small>Provide at least 10 characters so the facilities team can investigate.</small></label>
 
+          {error && <p className={styles.error} role="alert">{error}</p>}
           <footer className={styles.footer}>
-            <button type="button" className={styles.cancel} onClick={onClose}>Cancel</button>
-            <button type="submit" className={styles.submit} disabled={!floor || !room || description.trim().length < 10}>Submit report</button>
+            <button type="button" className={styles.cancel} onClick={onClose} disabled={submitting}>Cancel</button>
+            <button type="submit" className={styles.submit} disabled={submitting || !floor || !room || description.trim().length < 10}>{submitting ? "Saving report…" : "Submit report"}</button>
           </footer>
         </form>
       </div>

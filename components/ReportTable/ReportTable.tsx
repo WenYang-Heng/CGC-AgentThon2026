@@ -1,6 +1,6 @@
 import styles from "./ReportTable.module.css";
 
-export type ReportStatus = "Open" | "Under Review" | "Resolved";
+export type ReportStatus = "Active" | "Under Review" | "Resolved";
 
 export type EnergyWasteReport = {
   id: string;
@@ -11,7 +11,7 @@ export type EnergyWasteReport = {
 };
 
 const statusClass: Record<ReportStatus, string> = {
-  Open: styles.open,
+  Active: styles.open,
   "Under Review": styles.review,
   Resolved: styles.resolved,
 };

@@ -37,7 +37,7 @@ function setup() {
       if (state.apiStatus) throw new Error(`Copilot request failed: ${state.apiStatus}`);
       return [{ type: 'message', text: 'Agent response', conversation: { id: 'conversation-1' } }];
     }
-    async sendActivity(activity, id) { state.calls.push({ kind: 'event', activity, id }); return [{ type: 'message', text: 'Event response' }]; }
+    async sendActivity(activity, id) { state.calls.push({ kind: 'event', activity, id }); return [{ type: 'message', text: state.eventResponse ?? 'Event response' }]; }
   }
   const ctx = vm.createContext({ exports: {}, Error, Event: E, CustomEvent: E,
     window: { location: { origin: 'http://localhost:3000', protocol: 'http:', hostname: 'localhost' }, dispatchEvent: event => state.events.push(event) },
@@ -68,6 +68,22 @@ for (const origin of ['http://localhost:3000', 'https://cgc-agent-thon2026.verce
     assert.equal(state.logoutRequest.postLogoutRedirectUri, origin);
   });
 }
+
+test('waste report sends the entered description and uses the agent report ID', async () => {
+  const { api, state, account } = setup();
+  state.accounts = [account];
+  state.eventResponse = JSON.stringify({ success: true, reportId: 'AGENT-42', status: 'Active', message: 'Created' });
+  const description = 'Meeting room lights remain on after everyone has left.';
+  const result = await api.createEnergyWasteReport({ issueType: 'Lights', floorId: 'F06', floorName: 'Floor 6', roomType: 'Meeting Room', description });
+  assert.equal(state.calls.length, 1);
+  assert.equal(state.calls[0].kind, 'event');
+  assert.equal(state.calls[0].activity.name, 'ui.create_energy_waste_report');
+  assert.equal(state.calls[0].activity.value.description, description);
+  assert.equal(state.calls[0].activity.value.floorId, 'F06');
+  assert.equal(state.calls[0].activity.value.reportedBy, account.username);
+  assert.equal(result.reportId, 'AGENT-42');
+  assert.equal(result.success, true);
+});
 
 test('signed-out checks and requests fail closed without a popup', async () => {
   const { api, state } = setup();
