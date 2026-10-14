@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import Sidebar from "@/components/Sidebar/Sidebar";
 import ReportFormModal from "@/components/ReportFormModal/ReportFormModal";
 import ReportTable, { EnergyWasteReport } from "@/components/ReportTable/ReportTable";
@@ -30,6 +30,7 @@ export default function ReportEnergyWastePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submissionInProgress = useRef(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const visibleReports = useMemo(() => reports.filter((report) => {
@@ -38,7 +39,7 @@ export default function ReportEnergyWastePage() {
     return report.status === "Resolved";
   }), [reports, tab]);
 
-  const closeModal = useCallback(() => setModalOpen(false), []);
+  const closeModal = useCallback(() => { if (!submissionInProgress.current) setModalOpen(false); }, []);
   const counts = { active: reports.filter((report) => report.status !== "Resolved").length, review: reports.filter((report) => report.status === "Under Review").length, resolved: reports.filter((report) => report.status === "Resolved").length };
 
   return (
@@ -48,7 +49,7 @@ export default function ReportEnergyWastePage() {
         <header className={styles.pageHeader}>
           <button className={styles.menuButton} type="button" onClick={() => setMobileNavOpen((value) => !value)} aria-label="Toggle navigation" aria-expanded={mobileNavOpen}><Icon name="menu" /></button>
           <h1>Report Energy Waste</h1>
-          <button className={styles.createButton} type="button" onClick={() => setModalOpen(true)}><Icon name="plus" /><span>Create report</span></button>
+          <button className={styles.createButton} type="button" onClick={() => { setSubmitError(null); setModalOpen(true); }}><Icon name="plus" /><span>Create report</span></button>
         </header>
 
         <section className={styles.reportPanel} aria-labelledby="reports-heading">
@@ -62,6 +63,8 @@ export default function ReportEnergyWastePage() {
       </main>
       {mobileNavOpen && <button type="button" className={styles.scrim} aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />}
       <ReportFormModal open={modalOpen} submitting={submitting} error={submitError} onClose={closeModal} onSubmit={async (report) => {
+        if (submissionInProgress.current) return;
+        submissionInProgress.current = true;
         setSubmitting(true);
         setSubmitError(null);
         try {
@@ -76,10 +79,11 @@ export default function ReportEnergyWastePage() {
           const dateReported = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date());
           setReports((current) => [{ id: result.reportId!, issue: report.issue, location: `${report.floorName} · ${report.roomType}`, dateReported, status: result.status ?? "Active" }, ...current]);
           setTab("active");
-          closeModal();
+          setModalOpen(false);
         } catch (error) {
           setSubmitError(error instanceof Error ? error.message : "The report could not be created.");
         } finally {
+          submissionInProgress.current = false;
           setSubmitting(false);
         }
       }} />

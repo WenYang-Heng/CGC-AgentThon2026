@@ -476,7 +476,7 @@ export default function EnergyDashboard({ dashboardData }: { dashboardData: Ener
     <main className={styles.workspace} id="explorer">
       <header className={styles.topbar}>
         <button ref={menuButtonRef} className={styles.mobileMenu} onClick={() => setMobileNavOpen(!mobileNavOpen)} aria-label="Toggle navigation" aria-expanded={mobileNavOpen} aria-controls="primary-navigation"><Icon name={mobileNavOpen ? "close" : "menu"} /></button>
-        <div className={styles.pageTitle}><h1>Dashboard</h1><p>{dashboardData.building?.name ?? "Energy portfolio"} · 2026 generated prototype data</p></div>
+        <div className={styles.pageTitle}><h1>Dashboard</h1></div>
         <div className={styles.headerPickers}>
           <div className={styles.monthPicker} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setMonthPickerOpen(false); }} onKeyDown={event => { if (event.key === "Escape") setMonthPickerOpen(false); }}>
             <button type="button" className={styles.monthPickerTrigger} aria-haspopup="dialog" aria-expanded={monthPickerOpen} aria-controls="dashboard-month-picker" aria-label={`Reporting Month: ${monthNames[monthIndex]} 2026`} onClick={() => setMonthPickerOpen(open => !open)}><Icon name="calendar" size={17} /><span>{monthNames[monthIndex]} 2026</span><i aria-hidden="true" /></button>

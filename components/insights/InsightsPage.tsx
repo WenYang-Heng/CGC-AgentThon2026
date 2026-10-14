@@ -6,6 +6,7 @@ import ForecastChart from "./ForecastChart";
 import StatCard from "@/components/StatCard/StatCard";
 import { anomalyMockData } from "@/data/anomaly-mock-data";
 import { getForecast } from "@/services/forecast-service";
+import { CopilotAuthRequiredError, emailEnergyInsights } from "@/services/chatbot-service";
 import type { ElectricityForecast, MonthlyForecast } from "@/types/forecast";
 import type { CopilotRecommendationsPayload } from "@/lib/copilot-recommendations-data";
 import type { EnergyAnomaly, AnomalySeverity } from "@/types/anomaly";
@@ -119,6 +120,8 @@ export default function InsightsPage({ forecastFloors }: { forecastFloors: strin
   const [floor, setFloor] = useState("All Floors");
   const [startMonth, setStartMonth] = useState(0);
   const [endMonth, setEndMonth] = useState(11);
+  const [periodOpen, setPeriodOpen] = useState(false);
+  const periodTriggerRef = useRef<HTMLButtonElement>(null);
   const periodLabel = formatPeriodLabel(startMonth, endMonth);
   const floorId = floor === "All Floors" ? null : floor;
   const [forecastResult, setForecastResult] = useState<{ floorId: string | null; forecast?: ElectricityForecast; error?: string } | null>(null);
@@ -154,17 +157,33 @@ export default function InsightsPage({ forecastFloors }: { forecastFloors: strin
     });
     return () => controller.abort();
   }, [floorId, forecastAttempt]);
-  const [insightType, setInsightType] = useState("All Insights");
   const [severity, setSeverity] = useState<"all" | AnomalySeverity>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailResult, setEmailResult] = useState<{ success: boolean; message: string } | null>(null);
+  const emailPendingRef = useRef(false);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [recommendationsStatus, setRecommendationsStatus] = useState("Loading recommendations from Copilot Studio…");
   const menuRef = useRef<HTMLButtonElement>(null);
   const visibleAnomalies = useMemo(() => anomalyMockData.anomalies.filter((anomaly) => (floor === "All Floors" || anomaly.floor === `Floor ${Number(floor.slice(1))}`) && (severity === "all" || anomaly.severity === severity)), [floor, severity]);
   const show = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(null), 2500); };
   const copySummary = async () => { if (!summary) return; await navigator.clipboard.writeText(summary); show("Management summary copied"); };
+  const prepareSummaryEmail = async () => {
+    if (!summary || emailPendingRef.current) return;
+    emailPendingRef.current = true;
+    setEmailSending(true);
+    setEmailResult(null);
+    try {
+      setEmailResult(await emailEnergyInsights({ building: "Menara CGC", floorId, floorName: floor, analysisPeriod: periodLabel, summary }));
+    } catch (error) {
+      setEmailResult({ success: false, message: error instanceof CopilotAuthRequiredError ? "Sign in using the sidebar, then click Send Email again." : "Email delivery could not be confirmed. Check whether it was sent before retrying." });
+    } finally {
+      emailPendingRef.current = false;
+      setEmailSending(false);
+    }
+  };
   const exportSummary = () => { if (!summary) return; const url = URL.createObjectURL(new Blob([summary], { type: "text/plain" })); const link = document.createElement("a"); link.href = url; link.download = "energy-management-summary.txt"; link.click(); URL.revokeObjectURL(url); show("Summary exported"); };
   const requestRecommendations = () => {
     setRecommendationsStatus("Checking AI recommendations…");
@@ -202,22 +221,28 @@ export default function InsightsPage({ forecastFloors }: { forecastFloors: strin
     <main className={styles.workspace}>
       <header className={styles.topbar}>
         <button ref={menuRef} className={styles.mobileMenu} onClick={() => setMobileNavOpen(true)} aria-label="Open navigation"><Icon name="menu" /></button>
-        <div className={styles.pageTitle}><h1>Energy Insights</h1><p>Understand performance, exceptions, forecasts, and the next best actions.</p></div>
+        <div className={styles.pageTitle}><h1>Energy Insights</h1></div>
       </header>
 
       <section className={styles.filters} aria-label="Insight filters">
-        <label>Building<select defaultValue="Menara CGC"><option>Menara CGC</option></select></label>
-        <div className={styles.analysisPeriod}>
-          <span>Analysis Period</span>
+        <div className={styles.analysisPeriod} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setPeriodOpen(false); }} onKeyDown={event => { if (event.key === "Escape") { setPeriodOpen(false); periodTriggerRef.current?.focus(); } }}>
+          <span id="analysis-period-label">Analysis Period</span>
+          <button ref={periodTriggerRef} type="button" className={styles.periodTrigger} aria-labelledby="analysis-period-label analysis-period-value" aria-haspopup="dialog" aria-expanded={periodOpen} aria-controls="insights-period-picker" onClick={() => setPeriodOpen(open => !open)}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 11h18" /></svg>
+            <span id="analysis-period-value">{periodLabel}</span><i aria-hidden="true" />
+          </button>
+          {periodOpen && <div id="insights-period-picker" className={styles.periodPopover} role="dialog" aria-label="Choose analysis period">
+          <strong>Analysis Period</strong>
           <div className={styles.monthRange}>
-            <select aria-label="Start month" value={startMonth} onChange={event => { const month = Number(event.target.value); setStartMonth(month); if (month > endMonth) setEndMonth(month); }}>{MONTHS.map((month, index) => <option key={month} value={index}>{month}</option>)}</select>
+            <label>From<select aria-label="Start month" value={startMonth} onChange={event => { const month = Number(event.target.value); setStartMonth(month); if (month > endMonth) setEndMonth(month); }}>{MONTHS.map((month, index) => <option key={month} value={index}>{month}</option>)}</select></label>
             <span aria-hidden="true">→</span>
-            <select aria-label="End month" value={endMonth} onChange={event => { const month = Number(event.target.value); setEndMonth(month); if (month < startMonth) setStartMonth(month); }}>{MONTHS.map((month, index) => <option key={month} value={index}>{month}</option>)}</select>
+            <label>To<select aria-label="End month" value={endMonth} onChange={event => { const month = Number(event.target.value); setEndMonth(month); if (month < startMonth) setStartMonth(month); }}>{MONTHS.map((month, index) => <option key={month} value={index}>{month}</option>)}</select></label>
           </div>
           <div className={styles.quickPeriods} aria-label="Quick analysis periods">{PERIODS.map(period => <button key={period.label} type="button" aria-pressed={startMonth === period.start && endMonth === period.end} onClick={() => { setStartMonth(period.start); setEndMonth(period.end); }}>{period.label}</button>)}</div>
+          <button type="button" className={styles.periodDone} onClick={() => { setPeriodOpen(false); periodTriggerRef.current?.focus(); }}>Done</button>
+          </div>}
         </div>
         <label>Floor<select value={floor} onChange={(event) => setFloor(event.target.value)}><option>All Floors</option>{forecastFloors.map((value) => <option key={value}>{value}</option>)}</select></label>
-        <label>Insight Type<select value={insightType} onChange={(event) => setInsightType(event.target.value)}><option>All Insights</option><option>Consumption</option><option>Anomalies</option><option>Forecast</option></select></label>
       </section>
 
       <nav className={styles.tabs} aria-label="Insights sections">{(["overview", "anomalies", "forecast", "summary"] as InsightTab[]).map((tab) => <button key={tab} className={activeTab === tab ? styles.activeTab : ""} onClick={() => setActiveTab(tab)}>{tab === "summary" ? "Management Summary" : tab[0].toUpperCase() + tab.slice(1)}</button>)}</nav>
@@ -246,7 +271,7 @@ export default function InsightsPage({ forecastFloors }: { forecastFloors: strin
 
       {activeTab === "anomalies" ? <section><div className={styles.sectionTitle}><div><h2>Anomaly detection</h2><p>{visibleAnomalies.length} prototype demo exceptions in the selected scope</p></div><label className={styles.severityFilter}>Severity<select value={severity} onChange={(event) => setSeverity(event.target.value as "all" | AnomalySeverity)}><option value="all">All</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label></div><div className={styles.anomalyGrid}>{visibleAnomalies.map((anomaly) => <AnomalyCard key={anomaly.id} anomaly={anomaly} expanded={expanded === anomaly.id} onToggle={() => setExpanded(expanded === anomaly.id ? null : anomaly.id)} onAction={show} />)}</div></section> : null}
       {activeTab === "forecast" ? <section className={styles.forecastOnly}><ForecastChart {...chartProps} /></section> : null}
-      {activeTab === "summary" ? <section className={`${styles.panel} ${styles.summaryCard}`}><PanelHead title="Management summary" subtitle={`${floor} · ${periodLabel} electricity summary`} /><blockquote>{summary ?? (forecastLoading ? "Loading management summary…" : "Unavailable. Forecast data is needed to generate a management summary.")}</blockquote><div className={styles.summaryActions}><button disabled={forecastLoading} onClick={() => { retryForecast(); show("Refreshing summary from the selected scope"); }}><Icon name="spark" size={16} />Generate Summary</button><button disabled={!summary} onClick={() => void copySummary()}><Icon name="copy" size={16} />Copy Summary</button><button disabled={!summary} onClick={exportSummary}><Icon name="download" size={16} />Export</button></div></section> : null}
+      {activeTab === "summary" ? <section className={`${styles.panel} ${styles.summaryCard}`}><PanelHead title="Management summary" subtitle={`${floor} · ${periodLabel} electricity summary`} /><blockquote>{summary ?? (forecastLoading ? "Loading management summary…" : "Unavailable. Forecast data is needed to generate a management summary.")}</blockquote><div className={styles.summaryActions}><button disabled={forecastLoading} onClick={() => { retryForecast(); show("Refreshing summary from the selected scope"); }}><Icon name="spark" size={16} />Generate Summary</button><button disabled={!summary} onClick={() => void copySummary()}><Icon name="copy" size={16} />Copy Summary</button><button type="button" disabled={!summary || emailSending} aria-busy={emailSending} onClick={() => void prepareSummaryEmail()}>{emailSending ? "Sending email…" : "Send Email"}</button><button disabled={!summary} onClick={exportSummary}><Icon name="download" size={16} />Export</button></div>{emailResult && <p className={styles.forecastNote} role={emailResult.success ? "status" : "alert"}>{emailResult.message}</p>}</section> : null}
     </main>
     {mobileNavOpen ? <button className={styles.scrim} aria-label="Close navigation" onClick={() => { setMobileNavOpen(false); menuRef.current?.focus(); }} /> : null}
     {notice ? <div className={styles.toast} role="status"><span />{notice}</div> : null}

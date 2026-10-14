@@ -85,6 +85,24 @@ test('waste report sends the entered description and uses the agent report ID', 
   assert.equal(result.success, true);
 });
 
+test('Insights email uses one custom event with the exact payload and checks the result', async () => {
+  const { api, state, account } = setup(); state.accounts = [account];
+  const payload = { building: 'Menara CGC', floorId: null, floorName: 'All Floors', analysisPeriod: 'Jan–Mar', summary: 'Calculated management summary.' };
+  state.eventResponse = 'Email sent successfully.';
+  assert.equal((await api.emailEnergyInsights(payload)).message, state.eventResponse);
+  assert.equal(state.calls.length, 1);
+  assert.equal(state.calls[0].activity.name, 'ui.email_energy_insights');
+  assert.equal(state.calls[0].activity.type, 'event');
+  assert.deepEqual(state.calls[0].activity.value, payload);
+  state.eventResponse = 'Email action failed.';
+  assert.equal((await api.emailEnergyInsights(payload)).message, state.eventResponse);
+  state.eventResponse = '';
+  await assert.rejects(api.emailEnergyInsights(payload), /no email response/);
+  const callsBefore = state.calls.length;
+  await assert.rejects(api.emailEnergyInsights({ ...payload, summary: '' }), /summary is required/);
+  assert.equal(state.calls.length, callsBefore);
+});
+
 test('signed-out checks and requests fail closed without a popup', async () => {
   const { api, state } = setup();
   assert.equal((await api.checkCopilotAuth()).status, 'signed-out');

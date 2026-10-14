@@ -4,6 +4,14 @@ import type { CopilotRecommendationsPayload } from "@/lib/copilot-recommendation
 
 export type MessageSender = "user" | "assistant" | "system";
 
+export interface EmailEnergyInsightsRequest {
+  building: string;
+  floorId: string | null;
+  floorName: string;
+  analysisPeriod: string;
+  summary: string;
+}
+
 export interface ChatMessage {
   id: string;
   sender: MessageSender;

@@ -7,7 +7,7 @@ import { readConsentCard, type ConsentAction } from "@/lib/copilot-consent";
 import { parseCopilotDashboardPayload } from "@/lib/copilot-dashboard-data";
 import { parseCopilotRecommendations } from "@/lib/copilot-recommendations-data";
 import type { CopilotAuthState } from "@/types/copilot-auth";
-import type { ChatContext, ChatResponse } from "@/types/chatbot";
+import type { ChatContext, ChatResponse, EmailEnergyInsightsRequest } from "@/types/chatbot";
 
 const config = {
   environmentId: process.env.NEXT_PUBLIC_COPILOT_ENVIRONMENT_ID ?? "",
@@ -275,6 +275,20 @@ function parseJsonMessage(text: string) {
   } catch {
     return null;
   }
+}
+
+export async function emailEnergyInsights(payload: EmailEnergyInsightsRequest): Promise<{ success: boolean; message: string }> {
+  if (!payload.summary.trim()) throw new Error("A management summary is required to send the email.");
+  const activities = await withCopilotClient((connected, id) => connected.sendActivity(Activity.fromObject({
+    type: "event",
+    name: "ui.email_energy_insights",
+    value: payload,
+  }), id));
+  const messages = activities.filter(activity => activity.type === "message" && activity.text?.trim()).map(activity => activity.text!.trim());
+  const message = messages.join("\n\n");
+  if (!message) throw new Error("The agent returned no email response. Check whether the email was sent before retrying.");
+  // This means a response was received, not independently verified email delivery.
+  return { success: true, message };
 }
 
 export async function createEnergyWasteReport(payload: CreateEnergyWasteReportRequest): Promise<CreateEnergyWasteReportResponse> {

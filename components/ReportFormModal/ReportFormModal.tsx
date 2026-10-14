@@ -40,7 +40,8 @@ export default function ReportFormModal({ open, onClose, submitting = false, err
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
       if (event.key !== "Tab") return;
-      const controls = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), select, textarea');
+      const controls = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), select:not([disabled]), textarea:not([disabled])');
+      if (!controls?.length) { event.preventDefault(); dialogRef.current?.focus(); return; }
       if (!controls?.length) return;
       const first = controls[0];
       const last = controls[controls.length - 1];
@@ -55,16 +56,21 @@ export default function ReportFormModal({ open, onClose, submitting = false, err
     };
   }, [open, onClose]);
 
+  useEffect(() => {
+    if (open && submitting) dialogRef.current?.focus();
+  }, [open, submitting]);
+
   if (!open) return null;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (submitting || !floor || !room || description.trim().length < 10) return;
     onSubmit({ issue, floorId: `F${floor.padStart(2, "0")}`, floorName: `Floor ${floor}`, roomType: room, description: description.trim() });
   };
 
   return (
-    <div className={styles.backdrop} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="report-dialog-title">
+    <div className={styles.backdrop} role="presentation" onMouseDown={(event) => { if (!submitting && event.target === event.currentTarget) onClose(); }}>
+      <div ref={dialogRef} tabIndex={-1} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="report-dialog-title">
         <header className={styles.header}>
           <div>
             <span className={styles.headerIcon}><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg></span>
@@ -73,12 +79,12 @@ export default function ReportFormModal({ open, onClose, submitting = false, err
           <button ref={firstControlRef} type="button" className={styles.close} onClick={onClose} disabled={submitting} aria-label="Close report form"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
         </header>
 
-        <form onSubmit={submit}>
+        <form onSubmit={submit} aria-busy={submitting}>
           <fieldset className={styles.issueFieldset}>
             <legend>Issue</legend>
             <div className={styles.issueGrid}>
               {issues.map((option) => (
-                <button key={option.name} type="button" className={issue === option.name ? styles.issueSelected : ""} onClick={() => setIssue(option.name)} aria-pressed={issue === option.name}>
+                <button key={option.name} disabled={submitting} type="button" className={issue === option.name ? styles.issueSelected : ""} onClick={() => setIssue(option.name)} aria-pressed={issue === option.name}>
                   <svg viewBox="0 0 24 24">{option.icon}</svg><span>{option.name}</span>
                 </button>
               ))}
@@ -86,16 +92,16 @@ export default function ReportFormModal({ open, onClose, submitting = false, err
           </fieldset>
 
           <div className={styles.fieldGrid}>
-            <label>Floor<select required value={floor} onChange={(event) => setFloor(event.target.value)}><option value="" disabled>Select floor</option>{Array.from({ length: 16 }, (_, index) => <option key={index + 1} value={index + 1}>Floor {index + 1}</option>)}</select></label>
-            <label>Room type<select required value={room} onChange={(event) => setRoom(event.target.value)}><option value="" disabled>Select room</option>{rooms.map((name) => <option key={name}>{name}</option>)}</select></label>
+            <label>Floor<select disabled={submitting} required value={floor} onChange={(event) => setFloor(event.target.value)}><option value="" disabled>Select floor</option>{Array.from({ length: 16 }, (_, index) => <option key={index + 1} value={index + 1}>Floor {index + 1}</option>)}</select></label>
+            <label>Room type<select disabled={submitting} required value={room} onChange={(event) => setRoom(event.target.value)}><option value="" disabled>Select room</option>{rooms.map((name) => <option key={name}>{name}</option>)}</select></label>
           </div>
 
-          <label className={styles.description}>Describe the issue<textarea required minLength={10} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Please describe the issue you encountered." rows={5} /><small>Provide at least 10 characters so the facilities team can investigate.</small></label>
+          <label className={styles.description}>Describe the issue<textarea disabled={submitting} required minLength={10} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Please describe the issue you encountered." rows={5} /><small>Provide at least 10 characters so the facilities team can investigate.</small></label>
 
-          {error && <p className={styles.error} role="alert">{error}</p>}
+          {!submitting && error && <div className={styles.error} role="alert"><strong>Report creation could not be confirmed</strong><p>{error}</p><p>Your entries are preserved. Check the reports before retrying if the connection was interrupted.</p></div>}
           <footer className={styles.footer}>
             <button type="button" className={styles.cancel} onClick={onClose} disabled={submitting}>Cancel</button>
-            <button type="submit" className={styles.submit} disabled={submitting || !floor || !room || description.trim().length < 10}>{submitting ? "Saving report…" : "Submit report"}</button>
+            <button type="submit" className={styles.submit} aria-busy={submitting} disabled={submitting || !floor || !room || description.trim().length < 10}>{submitting && <span className={styles.spinner} aria-hidden="true" />}<span aria-live="polite">{submitting ? "Creating report…" : error ? "Retry submission" : "Submit report"}</span></button>
           </footer>
         </form>
       </div>
