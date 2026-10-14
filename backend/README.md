@@ -8,6 +8,10 @@ backend/.venv/Scripts/python -m uvicorn backend.main:app --reload --port 8000
 
 Set `NEXT_PUBLIC_FORECAST_API_URL=http://localhost:8000` in root `.env.local`, then restart `npm run dev`. Open `/insights` and select the Forecast tab or use the forecast panel in Overview. API documentation is at `http://localhost:8000/docs`.
 
+For the production frontend, set `NEXT_PUBLIC_FORECAST_API_URL=https://cgc-agent-thon2026-api-ws4c-iota.vercel.app` in the Vercel frontend project's Production environment and redeploy. Next.js embeds this public URL at build time; changing it requires a new frontend build. Do not upload `.env.local` to Vercel. There is no localhost fallback. Missing or invalid settings, and localhost or HTTP backends on a deployed frontend, produce a configuration error in the existing Insights error state.
+
+FastAPI CORS permits `http://localhost:3000` and `https://cgc-agent-thon2026.vercel.app`. Redeploy the backend to apply CORS changes. Other origins, including Vercel preview URLs, are not permitted. Check `/api/health` on the backend to verify availability; this endpoint does not validate the workbooks.
+
 The service reads the original root `data` workbooks on each forecast request, so changes are picked up without copying files or restarting. The health endpoint checks the running service; forecast endpoints return 503 when workbook loading fails.
 
 

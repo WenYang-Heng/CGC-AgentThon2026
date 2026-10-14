@@ -8,7 +8,10 @@ from backend.services.energy_service import FLOORS, load_energy_data
 from backend.services.forecast_service import building_forecast, floor_forecast
 
 app = FastAPI(title="CGC Electricity Forecast")
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"],
+app.add_middleware(CORSMiddleware, allow_origins=[
+                       "http://localhost:3000",
+                       "https://cgc-agent-thon2026.vercel.app",
+                   ],
                    allow_methods=["GET"], allow_headers=["*"])
 
 

@@ -61,6 +61,16 @@ class ForecastTests(unittest.TestCase):
 
     def test_endpoints_and_cors(self):
         client = TestClient(app)
+        for origin in ["http://localhost:3000", "https://cgc-agent-thon2026.vercel.app"]:
+            response = client.get("/api/health", headers={"Origin": origin})
+            self.assertEqual(response.headers["access-control-allow-origin"], origin)
+            response = client.options("/api/forecast/building", headers={
+                "Origin": origin, "Access-Control-Request-Method": "GET",
+            })
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.headers["access-control-allow-origin"], origin)
+        response = client.get("/api/health", headers={"Origin": "https://untrusted.example"})
+        self.assertNotIn("access-control-allow-origin", response.headers)
         self.assertEqual(client.get("/api/health").json(), {"status": "ok"})
         self.assertEqual(client.get("/api/forecast/floor/F17").status_code, 404)
         self.assertEqual(client.get("/api/forecast/floor/F17/compare").status_code, 404)

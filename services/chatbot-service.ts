@@ -60,7 +60,12 @@ async function getMsal() {
   if (!msalPromise) {
     msalPromise = (async () => {
       const instance = new PublicClientApplication({
-        auth: { clientId: config.clientId, authority: `https://login.microsoftonline.com/${config.tenantId}`, redirectUri: window.location.origin },
+        auth: {
+          clientId: config.clientId,
+          authority: `https://login.microsoftonline.com/${config.tenantId}`,
+          redirectUri: window.location.origin,
+          postLogoutRedirectUri: window.location.origin,
+        },
         // Retain the existing MSAL-managed refresh/tab persistence. No additional token storage.
         cache: { cacheLocation: "localStorage" },
       });

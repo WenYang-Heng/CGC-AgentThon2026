@@ -14,6 +14,7 @@ function setup() {
   class InteractionRequiredAuthError extends Error {}
   class E { constructor(type, options = {}) { this.type = type; this.detail = options.detail; } }
   class Msal {
+    constructor(configuration) { state.configuration = configuration; }
     async initialize() {}
     addEventCallback(callback) { state.callback = callback; }
     getAllAccounts() { return state.accounts; }
@@ -26,7 +27,7 @@ function setup() {
       return { account: state.active ?? state.accounts[0], accessToken: 'mock-token', expiresOn: state.expires, fromCache: true };
     }
     async loginPopup() { state.popup++; state.accounts = [account]; return { account }; }
-    async logoutPopup() { state.logout++; state.accounts = []; state.active = null; }
+    async logoutPopup(request) { state.logoutRequest = request; state.logout++; state.accounts = []; state.active = null; }
   }
   class Client {
     constructor() { state.clients++; }
@@ -53,6 +54,19 @@ function setup() {
   });
   vm.runInContext(compiled, ctx);
   return { api: ctx.exports, state, account, InteractionRequiredAuthError, ctx };
+}
+
+for (const origin of ['http://localhost:3000', 'https://cgc-agent-thon2026.vercel.app']) {
+  test(`sign-in and sign-out use the current origin: ${origin}`, async () => {
+    const { api, state, ctx } = setup();
+    const url = new URL(origin);
+    ctx.window.location = { origin: url.origin, protocol: url.protocol, hostname: url.hostname };
+    await api.signInToCopilot();
+    assert.equal(state.configuration.auth.redirectUri, origin);
+    assert.equal(state.configuration.auth.postLogoutRedirectUri, origin);
+    await api.signOutOfCopilot();
+    assert.equal(state.logoutRequest.postLogoutRedirectUri, origin);
+  });
 }
 
 test('signed-out checks and requests fail closed without a popup', async () => {
