@@ -11,13 +11,18 @@ const series = [
 ] as const;
 
 function LineChart({ monthly }: { monthly: MonthlyForecast[] }) {
-  const max = Math.max(1, ...monthly.flatMap(row => series.map(s => row[s.key] ?? 0)));
+  const highestValue = Math.max(1, ...monthly.flatMap(row => series.map(s => row[s.key] ?? 0)));
+  const roughStep = highestValue / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const step = Math.max(1, ([1, 2, 5, 10].find(multiplier => multiplier * magnitude >= roughStep) ?? 10) * magnitude);
+  const max = Math.ceil(highestValue / step) * step;
+  const ticks = Array.from({ length: Math.round(max / step) + 1 }, (_, index) => index * step);
   const x = (index: number) => 64 + index * (590 / Math.max(1, monthly.length - 1));
   const y = (value: number) => 200 - value / max * 165;
   return <>
     <svg className={styles.chart} viewBox="0 0 680 235" role="img" aria-label="Monthly electricity usage in kWh: 2025 actual, 2026 generated, and 2027 forecast">
       <text x="5" y="15">kWh</text>
-      {[0, 0.25, 0.5, 0.75, 1].map(tick => <g key={tick}><line x1="64" y1={y(max * tick)} x2="654" y2={y(max * tick)} className={styles.gridLine} /><text x="57" y={y(max * tick) + 4} textAnchor="end">{Math.round(max * tick).toLocaleString()}</text></g>)}
+      {ticks.map(tick => <g key={tick}><line x1="64" y1={y(tick)} x2="654" y2={y(tick)} className={styles.gridLine} /><text x="57" y={y(tick) + 4} textAnchor="end">{tick.toLocaleString()}</text></g>)}
       {series.map(s => {
         // Separate paths at null values so unknown months are visible as gaps.
         let previous = false;
