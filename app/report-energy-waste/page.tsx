@@ -20,9 +20,7 @@ const initialReports: EnergyWasteReport[] = [
 const sidebarItems = [
   { label: "Energy Explorer", href: "/", icon: <Icon name="chart" /> },
   { label: "Report Energy Waste", href: "/report-energy-waste", icon: <Icon name="report" /> },
-  { label: "Cost", href: "/#cost", icon: <Icon name="cost" /> },
-  { label: "Sustainability", href: "/#sustainability", icon: <Icon name="leaf" /> },
-  { label: "Insights", href: "/#insights", icon: <Icon name="insights" /> },
+  { label: "Insights", href: "/insights", icon: <Icon name="insights" /> },
 ];
 
 export default function ReportEnergyWastePage() {
@@ -71,12 +69,10 @@ export default function ReportEnergyWastePage() {
   );
 }
 
-function Icon({ name }: { name: "chart" | "report" | "cost" | "leaf" | "insights" | "menu" | "plus" }) {
+function Icon({ name }: { name: "chart" | "report" | "insights" | "menu" | "plus" }) {
   const paths = {
     chart: <><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /><path d="m4 14 5-4 4 3 6-7" /></>,
     report: <><path d="M8 4h8M9 3h6v3H9zM7 5H5v16h14V5h-2" /><path d="M8 11h8M8 15h5" /></>,
-    cost: <><circle cx="12" cy="12" r="9" /><path d="M15.5 8.5c-.8-.7-1.8-1-3-1-1.7 0-3 .9-3 2s1.1 1.7 3 2.1 3 1 3 2.2-1.3 2.2-3.2 2.2M12 5v14" /></>,
-    leaf: <><path d="M20.5 3.5C12 3.7 5.1 7.2 4.3 13.2c-.5 3.7 2.4 6.8 6.1 6.3 6-.8 9.5-7.7 10.1-16Z" /><path d="M4 21c2.2-5.5 6.5-9.7 12.7-12.5" /></>,
     insights: <path d="M4 20v-6M9 20V9M14 20v-4M19 20V4" />,
     menu: <path d="M4 7h16M4 12h16M4 17h16" />,
     plus: <path d="M12 5v14M5 12h14" />,
