@@ -32,6 +32,7 @@ export default function ReportEnergyWastePage() {
   const [submitting, setSubmitting] = useState(false);
   const submissionInProgress = useRef(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const visibleReports = useMemo(() => reports.filter((report) => {
     if (tab === "active") return report.status !== "Resolved";
@@ -49,8 +50,10 @@ export default function ReportEnergyWastePage() {
         <header className={styles.pageHeader}>
           <button className={styles.menuButton} type="button" onClick={() => setMobileNavOpen((value) => !value)} aria-label="Toggle navigation" aria-expanded={mobileNavOpen}><Icon name="menu" /></button>
           <h1>Report Energy Waste</h1>
-          <button className={styles.createButton} type="button" onClick={() => { setSubmitError(null); setModalOpen(true); }}><Icon name="plus" /><span>Create report</span></button>
+          <button className={styles.createButton} type="button" disabled={submitting} onClick={() => { setSubmitError(null); setSuccessMessage(null); setModalOpen(true); }}><Icon name="plus" /><span>Create report</span></button>
         </header>
+
+        {successMessage && <p className={styles.successMessage} role="status">{successMessage}</p>}
 
         <section className={styles.reportPanel} aria-labelledby="reports-heading">
           <div className={styles.tabs} role="tablist" aria-label="Report status">
@@ -67,18 +70,24 @@ export default function ReportEnergyWastePage() {
         submissionInProgress.current = true;
         setSubmitting(true);
         setSubmitError(null);
+        setSuccessMessage(null);
+        const minimumLoading = new Promise<void>(resolve => window.setTimeout(resolve, 1500));
         try {
-          const result = await createEnergyWasteReport({
+          const request = createEnergyWasteReport({
             issueType: report.issue,
             floorId: report.floorId,
             floorName: report.floorName,
             roomType: report.roomType,
             description: report.description,
           });
+          const [outcome] = await Promise.all([request.then(result => ({ result }), error => ({ error })), minimumLoading]);
+          if ("error" in outcome) throw outcome.error;
+          const result = outcome.result;
           if (!result.success || !result.reportId) throw new Error(result.message || "The report could not be created.");
           const dateReported = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date());
           setReports((current) => [{ id: result.reportId!, issue: report.issue, location: `${report.floorName} · ${report.roomType}`, dateReported, status: result.status ?? "Active" }, ...current]);
           setTab("active");
+          setSuccessMessage(`Report ${result.reportId} created successfully.`);
           setModalOpen(false);
         } catch (error) {
           setSubmitError(error instanceof Error ? error.message : "The report could not be created.");

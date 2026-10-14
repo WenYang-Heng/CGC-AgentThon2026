@@ -105,13 +105,13 @@ function PanelHead({ title, subtitle, aside }: { title: string; subtitle: string
   return <header className={styles.panelHead}><div><h2>{title}</h2><p>{subtitle}</p></div>{aside}</header>;
 }
 
-function AnomalyCard({ anomaly, expanded, onToggle, onAction }: { anomaly: EnergyAnomaly; expanded: boolean; onToggle: () => void; onAction: (message: string) => void }) {
+function AnomalyCard({ anomaly, expanded, onToggle, onAction, onNotify, notifying, notifyDisabled }: { anomaly: EnergyAnomaly; expanded: boolean; onToggle: () => void; onAction: (message: string) => void; onNotify: () => void; notifying: boolean; notifyDisabled: boolean }) {
   return <article className={styles.anomalyCard}>
     <div className={styles.anomalyTop}><div><span>{anomaly.floor} · {anomaly.startTime}–{anomaly.endTime}</span><h3>{anomaly.description}</h3></div><span className={`${styles.severity} ${styles[anomaly.severity]}`}>{anomaly.severity}</span></div>
     <div className={styles.analyticsFinding}><span>Analytics</span><strong>{anomaly.baselineDeviation}% above baseline</strong></div>
     <div className={styles.aiFinding}><Icon name="spark" size={15} /><p><span>AI explanation</span>{anomaly.possibleCauses.join(" · ")}</p></div>
     {expanded ? <div className={styles.anomalyDetails}><div><span>Possible causes</span><ul>{anomaly.possibleCauses.map((cause) => <li key={cause}>{cause}</li>)}</ul></div><div><span>Recommended action</span><p>{anomaly.recommendedAction}</p></div></div> : null}
-    <div className={styles.cardActions}><button onClick={() => onAction(`Ticket drafted for ${anomaly.floor}`)}>Create Ticket</button><button onClick={() => onAction(`Floor champion notification prepared for ${anomaly.floor}`)}>Notify Floor Champion</button><button onClick={onToggle}>{expanded ? "Hide Details" : "View Details"}</button></div>
+    <div className={styles.cardActions}><button onClick={() => onAction(`Ticket drafted for ${anomaly.floor}`)}>Create Ticket</button><button type="button" disabled={notifyDisabled} aria-busy={notifying} onClick={onNotify}>{notifying ? "Notifying…" : "Notify Floor Champion"}</button><button onClick={onToggle}>{expanded ? "Hide Details" : "View Details"}</button></div>
   </article>;
 }
 
@@ -164,12 +164,29 @@ export default function InsightsPage({ forecastFloors }: { forecastFloors: strin
   const [emailSending, setEmailSending] = useState(false);
   const [emailResult, setEmailResult] = useState<{ success: boolean; message: string } | null>(null);
   const emailPendingRef = useRef(false);
+  const [notifyingId, setNotifyingId] = useState<string | null>(null);
+  const notificationPendingRef = useRef(false);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [recommendationsStatus, setRecommendationsStatus] = useState("Loading recommendations from Copilot Studio…");
   const menuRef = useRef<HTMLButtonElement>(null);
   const visibleAnomalies = useMemo(() => anomalyMockData.anomalies.filter((anomaly) => (floor === "All Floors" || anomaly.floor === `Floor ${Number(floor.slice(1))}`) && (severity === "all" || anomaly.severity === severity)), [floor, severity]);
   const show = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(null), 2500); };
   const copySummary = async () => { if (!summary) return; await navigator.clipboard.writeText(summary); show("Management summary copied"); };
+  const notifyFloorChampion = async (anomaly: EnergyAnomaly) => {
+    if (notificationPendingRef.current) return;
+    notificationPendingRef.current = true;
+    setNotifyingId(anomaly.id);
+    const cardFloorId = `F${String(Number(anomaly.floor.replace("Floor ", ""))).padStart(2, "0")}`;
+    const notificationSummary = `Floor champion notification for ${anomaly.floor}. Prototype demo anomaly; this is not a measured monthly anomaly.\nIssue: ${anomaly.description}\nTime: ${anomaly.startTime}–${anomaly.endTime}\nSeverity: ${anomaly.severity}\nDeviation: ${anomaly.baselineDeviation}% above baseline\nPossible causes: ${anomaly.possibleCauses.join("; ")}\nRecommended action: ${anomaly.recommendedAction}\nSelected analysis period: ${periodLabel}. The demo anomaly has no recorded date and is not verified for this period.`;
+    try {
+      await emailEnergyInsights({ building: "Menara CGC", floorId: cardFloorId, floorName: anomaly.floor, analysisPeriod: periodLabel, summary: notificationSummary });
+    } catch {
+      // Notifications intentionally have no follow-up message; authentication state remains shared.
+    } finally {
+      notificationPendingRef.current = false;
+      setNotifyingId(null);
+    }
+  };
   const prepareSummaryEmail = async () => {
     if (!summary || emailPendingRef.current) return;
     emailPendingRef.current = true;
@@ -222,12 +239,9 @@ export default function InsightsPage({ forecastFloors }: { forecastFloors: strin
       <header className={styles.topbar}>
         <button ref={menuRef} className={styles.mobileMenu} onClick={() => setMobileNavOpen(true)} aria-label="Open navigation"><Icon name="menu" /></button>
         <div className={styles.pageTitle}><h1>Energy Insights</h1></div>
-      </header>
-
       <section className={styles.filters} aria-label="Insight filters">
         <div className={styles.analysisPeriod} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setPeriodOpen(false); }} onKeyDown={event => { if (event.key === "Escape") { setPeriodOpen(false); periodTriggerRef.current?.focus(); } }}>
-          <span id="analysis-period-label">Analysis Period</span>
-          <button ref={periodTriggerRef} type="button" className={styles.periodTrigger} aria-labelledby="analysis-period-label analysis-period-value" aria-haspopup="dialog" aria-expanded={periodOpen} aria-controls="insights-period-picker" onClick={() => setPeriodOpen(open => !open)}>
+          <button ref={periodTriggerRef} type="button" className={styles.periodTrigger} aria-label={`Analysis Period: ${periodLabel}`} aria-haspopup="dialog" aria-expanded={periodOpen} aria-controls="insights-period-picker" onClick={() => setPeriodOpen(open => !open)}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 11h18" /></svg>
             <span id="analysis-period-value">{periodLabel}</span><i aria-hidden="true" />
           </button>
@@ -242,8 +256,9 @@ export default function InsightsPage({ forecastFloors }: { forecastFloors: strin
           <button type="button" className={styles.periodDone} onClick={() => { setPeriodOpen(false); periodTriggerRef.current?.focus(); }}>Done</button>
           </div>}
         </div>
-        <label>Floor<select value={floor} onChange={(event) => setFloor(event.target.value)}><option>All Floors</option>{forecastFloors.map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label><select aria-label="Floor" value={floor} onChange={(event) => setFloor(event.target.value)}><option>All Floors</option>{forecastFloors.map((value) => <option key={value}>{value}</option>)}</select></label>
       </section>
+      </header>
 
       <nav className={styles.tabs} aria-label="Insights sections">{(["overview", "anomalies", "forecast", "summary"] as InsightTab[]).map((tab) => <button key={tab} className={activeTab === tab ? styles.activeTab : ""} onClick={() => setActiveTab(tab)}>{tab === "summary" ? "Management Summary" : tab[0].toUpperCase() + tab.slice(1)}</button>)}</nav>
 
@@ -265,11 +280,11 @@ export default function InsightsPage({ forecastFloors }: { forecastFloors: strin
             </div>
           </article>
         </section>
-        <section className={styles.splitGrid}><div><div className={styles.sectionTitle}><div><h2>Detected anomalies</h2><p>Prototype demo data · independent of calculated overview metrics</p></div><button onClick={() => setActiveTab("anomalies")}>View all</button></div>{visibleAnomalies.slice(0, 2).map((anomaly) => <AnomalyCard key={anomaly.id} anomaly={anomaly} expanded={expanded === anomaly.id} onToggle={() => setExpanded(expanded === anomaly.id ? null : anomaly.id)} onAction={show} />)}</div><ForecastChart {...chartProps} /></section>
+        <section className={styles.splitGrid}><div><div className={styles.sectionTitle}><div><h2>Detected anomalies</h2><p>Prototype demo data · independent of calculated overview metrics</p></div><button onClick={() => setActiveTab("anomalies")}>View all</button></div>{visibleAnomalies.slice(0, 2).map((anomaly) => <AnomalyCard key={anomaly.id} anomaly={anomaly} expanded={expanded === anomaly.id} onToggle={() => setExpanded(expanded === anomaly.id ? null : anomaly.id)} onAction={show} onNotify={() => void notifyFloorChampion(anomaly)} notifying={notifyingId === anomaly.id} notifyDisabled={notifyingId !== null} />)}</div><ForecastChart {...chartProps} /></section>
         <section><div className={styles.sectionTitle}><div><h2>AI recommendations</h2><p>{recommendationsStatus}</p></div><button type="button" onClick={requestRecommendations}>Check AI Recommendations</button></div><div className={styles.recommendations}>{recommendations.map((item) => <article key={item.id}><div><span>{item.floor}</span><span className={item.impact === "High" ? styles.highImpact : styles.moderateImpact}>{item.impact} impact</span></div><h3>{item.title}</h3><p>{item.explanation}</p><strong>{item.action}</strong></article>)}</div></section>
       </> : null}
 
-      {activeTab === "anomalies" ? <section><div className={styles.sectionTitle}><div><h2>Anomaly detection</h2><p>{visibleAnomalies.length} prototype demo exceptions in the selected scope</p></div><label className={styles.severityFilter}>Severity<select value={severity} onChange={(event) => setSeverity(event.target.value as "all" | AnomalySeverity)}><option value="all">All</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label></div><div className={styles.anomalyGrid}>{visibleAnomalies.map((anomaly) => <AnomalyCard key={anomaly.id} anomaly={anomaly} expanded={expanded === anomaly.id} onToggle={() => setExpanded(expanded === anomaly.id ? null : anomaly.id)} onAction={show} />)}</div></section> : null}
+      {activeTab === "anomalies" ? <section><div className={styles.sectionTitle}><div><h2>Anomaly detection</h2><p>{visibleAnomalies.length} prototype demo exceptions in the selected scope</p></div><label className={styles.severityFilter}>Severity<select value={severity} onChange={(event) => setSeverity(event.target.value as "all" | AnomalySeverity)}><option value="all">All</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label></div><div className={styles.anomalyGrid}>{visibleAnomalies.map((anomaly) => <AnomalyCard key={anomaly.id} anomaly={anomaly} expanded={expanded === anomaly.id} onToggle={() => setExpanded(expanded === anomaly.id ? null : anomaly.id)} onAction={show} onNotify={() => void notifyFloorChampion(anomaly)} notifying={notifyingId === anomaly.id} notifyDisabled={notifyingId !== null} />)}</div></section> : null}
       {activeTab === "forecast" ? <section className={styles.forecastOnly}><ForecastChart {...chartProps} /></section> : null}
       {activeTab === "summary" ? <section className={`${styles.panel} ${styles.summaryCard}`}><PanelHead title="Management summary" subtitle={`${floor} · ${periodLabel} electricity summary`} /><blockquote>{summary ?? (forecastLoading ? "Loading management summary…" : "Unavailable. Forecast data is needed to generate a management summary.")}</blockquote><div className={styles.summaryActions}><button disabled={forecastLoading} onClick={() => { retryForecast(); show("Refreshing summary from the selected scope"); }}><Icon name="spark" size={16} />Generate Summary</button><button disabled={!summary} onClick={() => void copySummary()}><Icon name="copy" size={16} />Copy Summary</button><button type="button" disabled={!summary || emailSending} aria-busy={emailSending} onClick={() => void prepareSummaryEmail()}>{emailSending ? "Sending email…" : "Send Email"}</button><button disabled={!summary} onClick={exportSummary}><Icon name="download" size={16} />Export</button></div>{emailResult && <p className={styles.forecastNote} role={emailResult.success ? "status" : "alert"}>{emailResult.message}</p>}</section> : null}
     </main>
