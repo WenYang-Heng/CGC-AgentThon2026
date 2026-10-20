@@ -232,14 +232,19 @@ function LineChart({ series, activeMonthIndex, label, unit = "kWh" }: {
 }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const width = 760, height = 280, left = 58, right = 18, top = 28, bottom = 42;
-  const max = Math.max(1, ...series.flatMap(item => item.values.filter((value): value is number => value !== null)));
+  const highestValue = Math.max(1, ...series.flatMap(item => item.values.filter((value): value is number => value !== null)));
+  const roughStep = highestValue / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const tickStep = Math.max(1, ([1, 2, 5, 10].find(multiplier => multiplier * magnitude >= roughStep) ?? 10) * magnitude);
+  const max = Math.ceil(highestValue / tickStep) * tickStep;
+  const ticks = Array.from({ length: Math.round(max / tickStep) + 1 }, (_, index) => index * tickStep);
   const x = (index: number) => left + index * (width - left - right) / 11;
   const y = (value: number) => top + (1 - value / max) * (height - top - bottom);
   const active = hoveredIndex ?? activeMonthIndex;
   const formatValue = (value: number | null) => value === null ? "Unavailable" : value.toLocaleString(undefined, { maximumFractionDigits: 1 }) + " " + unit;
   return <div className={styles.chartWrapper}>
     <svg className={styles.lineChart} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label} onPointerLeave={() => setHoveredIndex(null)}>
-      {[0, .25, .5, .75, 1].map(tick => <g key={tick}><line x1={left} y1={y(max * tick)} x2={width - right} y2={y(max * tick)} className={styles.gridLine} /><text x={left - 10} y={y(max * tick) + 4} textAnchor="end" className={styles.axisText}>{Math.round(max * tick / 1000)}k</text></g>)}
+      {ticks.map(tick => <g key={tick}><line x1={left} y1={y(tick)} x2={width - right} y2={y(tick)} className={styles.gridLine} /><text x={left - 10} y={y(tick) + 4} textAnchor="end" className={styles.axisText}>{tick >= 1000 ? `${tick / 1000}k` : tick}</text></g>)}
       {months.map((month, index) => <text key={month} x={x(index)} y={height - 13} textAnchor="middle" className={styles.axisText}>{month}</text>)}
       {series.map(item => {
         let previous = false;
@@ -299,7 +304,8 @@ function CarbonChangeChart({ data, activeMonthIndex, label }: {
   const y = (value: number) => top + (axis.maximum - value) / (axis.maximum - axis.minimum) * (height - top - bottom);
   const formatCarbon = (value: number | null, signed = false) => value === null ? "Unavailable" :
     `${signed && value > 0 ? "+" : ""}${value.toLocaleString("en-MY", { maximumFractionDigits: 1 })} kgCO₂e`;
-  const tooltip = (index: number) => `${monthNames[index]}\n2025 Baseline: ${formatCarbon(data[index].baseline)}\n2026 Generated: ${formatCarbon(data[index].current)}\nDifference: ${formatCarbon(data[index].difference, true)}\nChange: ${formatChange(data[index].change)}`;
+  const changeArrow = (value: number | null) => value === null || value === 0 ? "" : value > 0 ? "↑ " : "↓ ";
+  const tooltip = (index: number) => `${monthNames[index]}\n2025: ${formatCarbon(data[index].baseline)}\n2026 (${changeArrow(data[index].change)}${formatChange(data[index].change)}): ${formatCarbon(data[index].current)}\nDifference: ${formatCarbon(data[index].difference, true)}`;
   const active = hoveredIndex ?? activeMonthIndex;
   return <div className={styles.chartWrapper}>
     <svg className={styles.lineChart} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label} onPointerLeave={() => setHoveredIndex(null)}>
@@ -312,9 +318,12 @@ function CarbonChangeChart({ data, activeMonthIndex, label }: {
         <text x={x(index)} y={height - 13} textAnchor="middle" className={styles.axisText}>{months[index]}</text>
         <rect x={left + index * step} y={top} width={step} height={height - top - bottom} className={styles.chartHitArea} tabIndex={0} role="button" aria-label={tooltip(index)} onPointerEnter={() => setHoveredIndex(index)} onFocus={() => setHoveredIndex(index)} onBlur={() => setHoveredIndex(null)}><title>{tooltip(index)}</title></rect>
       </g>)}
-      {hoveredIndex !== null ? <g className={styles.peakLabel} transform={`translate(${hoveredIndex >= 6 ? left : width - right - 265} 3)`}>
-        <rect width="265" height="96" rx="8" />
-        {[monthNames[hoveredIndex], `2025 Baseline: ${formatCarbon(data[hoveredIndex].baseline)}`, `2026 Generated: ${formatCarbon(data[hoveredIndex].current)}`, `Difference: ${formatCarbon(data[hoveredIndex].difference, true)}`, `Change: ${formatChange(data[hoveredIndex].change)}`].map((text, index) => <text key={index} x="10" y={16 + index * 17} style={{ fontSize: 10 }}>{text}</text>)}
+      {hoveredIndex !== null ? <g className={styles.peakLabel} transform={`translate(${hoveredIndex >= 6 ? left : width - right - 345} 3)`}>
+        <rect width="345" height="106" rx="8" />
+        <text x="12" y="21" style={{ fontSize: 14, fontWeight: 700 }}>{monthNames[hoveredIndex]}</text>
+        <text x="12" y="46" style={{ fontSize: 13 }}>2026: {formatCarbon(data[hoveredIndex].current)}<tspan dx="10" style={{ fill: data[hoveredIndex].change === null || data[hoveredIndex].change === 0 ? "#66748b" : data[hoveredIndex].change! > 0 ? "#b42318" : "#067c61", fontWeight: 700 }}>{changeArrow(data[hoveredIndex].change)}{formatChange(data[hoveredIndex].change)}</tspan></text>
+        <text x="12" y="70" style={{ fontSize: 13 }}>2025: {formatCarbon(data[hoveredIndex].baseline)}</text>
+        <text x="12" y="94" style={{ fontSize: 13, fill: "#137be8" }}>Difference: {formatCarbon(data[hoveredIndex].difference, true)}</text>
       </g> : null}
     </svg>
     <div className={styles.seriesLegend}><span><i style={{ backgroundColor: "#66748b" }} /><b>2025</b></span></div>
@@ -463,8 +472,8 @@ export default function EnergyDashboard({ dashboardData }: { dashboardData: Ener
     return first === null ? second === null ? a.id.localeCompare(b.id) : 1 : second === null ? -1 : second - first;
   });
   const electricitySeries: ChartSeries[] = [
-    { id: "baseline", label: "2025 Baseline", values: baselineValues, color: "#137be8" },
-    { id: "current", label: "2026 Generated", values: currentValues, color: "#0bb894" },
+    { id: "baseline", label: "2025", values: baselineValues, color: "#137be8" },
+    { id: "current", label: "2026", values: currentValues, color: "#0bb894" },
   ];
   const carbonChanges = carbonMonthlyChanges(baselineValues, currentValues, emissionFactor);
   const flash = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(null), 2600); };
@@ -504,8 +513,7 @@ export default function EnergyDashboard({ dashboardData }: { dashboardData: Ener
         <section className={styles.dynamicSection}>
           <article className={`${styles.panel} ${styles.floorComparisonPanel}`}>
             <PanelHead title="Floor Performance" subtitle={monthNames[monthIndex] + " 2026 · F01–F16 compared with the same month in 2025"} action={<label className={styles.sortControl}><span>Sort by</span><select value={floorSort} onChange={event => setFloorSort(event.target.value as FloorSort)}><option value="change">Change vs baseline</option><option value="usage">2026 consumption</option><option value="employee">Energy per employee</option></select></label>} />
-            <div className={styles.tableScroll}><table className={styles.comparisonTable}><thead><tr><th>Floor</th><th>Usage type</th><th>2025 baseline (kWh)</th><th>2026 generated (kWh)</th><th>Change vs baseline</th><th>Employees (2025)</th><th>kWh / employee</th></tr></thead><tbody>{ranked.map(row => <tr key={row.id} className={selectedIds.has(row.id) ? styles.selectedTableRow : undefined} onClick={() => selectFloor(row.id)}><td><button type="button" onClick={event => { event.stopPropagation(); selectFloor(row.id); }}>{row.floor.short}</button></td><td>{row.floor.usageType}</td><td>{formatEnergy(row.baseline)}</td><td>{formatEnergy(row.current)}</td><td><span className={row.change === null || row.change === 0 ? undefined : row.change > 0 ? styles.statusWarning : styles.statusGood}>{formatChange(row.change)}</span></td><td>{row.floor.employees ?? "Unavailable"}</td><td>{row.employee === null ? "Unavailable" : row.employee.toFixed(1)}</td></tr>)}</tbody></table></div>
-            <p className={styles.comparisonHighlight}>Per-employee comparisons use 2025 annual-average occupancy. Floors without a positive employee count remain unavailable.</p>
+            <div className={styles.tableScroll}><table className={styles.comparisonTable}><thead><tr><th>Floor</th><th>Usage type</th><th>2025 baseline (kWh)</th><th>2026 generated (kWh)</th><th>Change vs baseline</th><th>Employees (2025)</th><th>kWh / employee</th></tr></thead><tbody>{ranked.map(row => <tr key={row.id} onClick={() => selectFloor(row.id)}><td><button type="button" onClick={event => { event.stopPropagation(); selectFloor(row.id); }}>{row.floor.short}</button></td><td>{row.floor.usageType}</td><td>{formatEnergy(row.baseline)}</td><td>{formatEnergy(row.current)}</td><td><span className={row.change === null || row.change === 0 ? undefined : row.change > 0 ? styles.statusWarning : styles.statusGood}>{formatChange(row.change)}</span></td><td>{row.floor.employees ?? "Unavailable"}</td><td>{row.employee === null ? "Unavailable" : row.employee.toFixed(1)}</td></tr>)}</tbody></table></div>
           </article>
         </section>
         <footer className={styles.footer}><span>Sources: 2025 actual baseline and generated 2026 prototype workbook. 2026 values are not actual utility readings.</span><span>Emissions use the available 2025 factor; employee comparisons use 2025 occupancy metadata.</span></footer>

@@ -1,0 +1,12 @@
+.root{position:relative;min-width:0}
+.root .trigger{display:flex;align-items:center;gap:12px;width:100%;min-height:40px;padding:0 13px;color:#253246;background:#fff;border:1px solid #d7e1eb;border-radius:8px;box-shadow:0 4px 12px rgba(32,66,103,.05);font-size:12px;font-weight:650;cursor:pointer}
+.trigger span{flex:1;text-align:left}
+.trigger i{flex-shrink:0;width:7px;height:7px;border-right:1.5px solid #6b7280;border-bottom:1.5px solid #6b7280;transform:translateY(-2px) rotate(45deg);transition:transform 160ms ease}
+.trigger[aria-expanded=true] i{transform:translateY(2px) rotate(225deg)}
+.menu{position:absolute;right:0;top:calc(100% + 8px);z-index:30;min-width:100%;width:max-content;max-width:calc(100vw - 32px);max-height:280px;overflow:auto;padding:6px;background:#fff;border:1px solid #dfe7f0;border-radius:10px;box-shadow:0 16px 38px rgba(24,48,76,.16);transform-origin:top right;animation:dropdownIn 180ms ease-out both}
+.menu button{display:block;width:100%;padding:10px 12px;border:0;border-radius:6px;background:#fff;color:#253246;text-align:left;font-size:12px;white-space:normal}
+.menu button:hover,.menu button:focus-visible{background:#eff7ff;color:#075ebc;outline:none}
+.menu button[aria-selected=true]{background:#eaf4ff;color:#075ebc;font-weight:650}
+.trigger:focus-visible{outline:3px solid rgba(19,123,232,.18);outline-offset:2px}
+@keyframes dropdownIn{from{opacity:0;transform:translateY(-5px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.menu{animation:none}.trigger i{transition:none}}

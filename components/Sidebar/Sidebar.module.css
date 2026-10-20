@@ -20,10 +20,20 @@
 
 .logo {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 0;
 
   padding: 0 10px 28px;
+}
+
+.brandImage {
+  display: block;
+  width: 144px;
+  max-width: 100%;
+  height: 96px;
+  object-fit: contain;
+  mix-blend-mode: screen;
 }
 
 .logoIcon {
@@ -97,10 +107,8 @@
   color: #fff;
   background: #213b57;
 
-  border-color: #2b5877;
+  border-color: transparent;
 
-  box-shadow:
-    inset 2px 0 #28cbea;
 }
 
 .sidebar nav .active svg {
@@ -206,11 +214,9 @@
   display: grid;
   gap: 7px;
   margin-top: auto;
-  padding: 12px 10px;
+  padding: 12px 0 0;
   color: #d8e6f4;
-  background: #142a40;
-  border: 1px solid #29445f;
-  border-radius: 9px;
+  background: transparent;
 }
 
 .copilotSignIn strong,
@@ -222,16 +228,26 @@
 .copilotSignIn small { color: #9eb1c5; font-size: 9px; line-height: 1.4; }
 .copilotSignIn .copilotError { color: #ffb4ab; }
 .copilotSignIn button {
-  padding: 8px 10px;
-  color: #06231d;
-  background: #19d6ad;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  color: #d8e6f4;
+  background: transparent;
   border: 0;
   border-radius: 7px;
   font: inherit;
-  font-size: 10px;
-  font-weight: 750;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
   cursor: pointer;
 }
+.copilotSignIn button svg { flex-shrink: 0; color: #9eb1c5; }
+.copilotSignIn button:hover:not(:disabled) { color: #fff; background: #1a3047; }
+.copilotSignIn button:focus-visible { outline: 2px solid #61c8ff; outline-offset: 2px; }
+.copilotSignIn small { padding-inline: 14px; }
 .copilotSignIn button:disabled { cursor: wait; opacity: .65; }
 
 .copilotSignIn + .profile { margin-top: 10px; }

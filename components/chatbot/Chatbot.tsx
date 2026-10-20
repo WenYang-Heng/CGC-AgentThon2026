@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
+import tnbLogo from "@/public/tnb-logo.png";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { checkCopilotAuth, CopilotAuthRequiredError, requestCopilotRecommendations, sendChatMessage, signInToCopilot, submitChatConsent } from "@/services/chatbot-service";
@@ -220,6 +222,10 @@ export default function Chatbot({ context = {} }: { context?: ChatContext }) {
       {!authenticated ? <div className={styles.authState} role="status"><p>{auth.status === "checking" ? "Checking your Microsoft session…" : auth.status === "signing-in" ? "Signing in…" : auth.message ?? "Sign in to use the Energy Assistant with your authorized Microsoft account."}</p>{auth.status !== "checking" && auth.status !== "signing-in" ? <button type="button" onClick={() => { void signInToCopilot().catch(() => {}); }}>Sign in with Microsoft</button> : null}</div> : null}
       {authenticated ? <form className={styles.composer} autoComplete="off" onSubmit={submit}><label className={styles.srOnly} htmlFor="energy-assistant-input">Ask Energy Assistant</label><textarea ref={inputRef} autoComplete="off" id="energy-assistant-input" rows={2} value={input} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); if (!loading && authenticated) void send(input); } }} placeholder="Ask about your building energy data…" /><button type="submit" disabled={!input.trim() || loading || !authenticated} aria-label="Send message"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg></button></form> : null}
     </section>
+    <a className={`${styles.tnbLink} ${open ? styles.toggleHidden : ""}`} href="https://myaccount.mytnb.com.my/" target="_blank" rel="noopener noreferrer" tabIndex={open ? -1 : 0} aria-hidden={open} aria-label="Open myTNB portal in a new tab" title="Open myTNB portal (new tab)">
+      <Image src={tnbLogo} alt="TNB" width={96} height={32} sizes="96px" />
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M14 3h7v7M21 3 10 14M10 5H4v15h15v-6" /></svg>
+    </a>
     <button ref={toggleRef} className={`${styles.toggle} ${open ? styles.toggleHidden : ""}`} tabIndex={open ? -1 : 0} aria-hidden={open} onClick={() => setOpen(true)} aria-label="Open Energy Assistant" aria-expanded={open} aria-controls="energy-assistant-drawer"><Spark size={21} /><span>Energy Assistant</span></button>
   </>;
 }

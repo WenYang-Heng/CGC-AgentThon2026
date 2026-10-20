@@ -8,6 +8,8 @@ function setup(initialStatus = 'signed-in') {
  const ctx=vm.createContext({exports:{},crypto:require("node:crypto"),window,Event:E,CustomEvent:E,queueMicrotask,require(name){
   if(name==='react')return {useState(initial){const i=states.length;states.push(initial);return [initial,value=>states[i]=typeof value==='function'?value(states[i]):value];},useRef:current=>({current}),useEffect:fn=>fn()};
   if(name==='next/navigation')return {usePathname:()=>'/'};
+  if(name==='@/public/tnb-logo.png')return '/tnb-logo.png';
+  if(name==='next/image')return ({src,alt,width,height})=>require('react').createElement('img',{src,alt,width,height});
   if(name==='@/lib/use-copilot-auth')return {useCopilotAuth:()=>({status})};
   if(name.endsWith('.css'))return {};
   if(name==='@/services/chatbot-service')return {CopilotAuthRequiredError:AuthError,checkCopilotAuth:async()=>({status}),sendChatMessage:async(text)=>{calls.push(text);if(expires){status='session-expired';throw new AuthError();}return {text:'Reply'};},requestCopilotRecommendations:async()=>{calls.push("get_recommendation");return {text:"Background reply",recommendationsPayload:{recommendations:[]}};},signInToCopilot:async()=>{},submitChatConsent:async()=>({text:'Consent reply'})};

@@ -52,6 +52,9 @@
 .monthPickerTrigger:focus-visible,.monthGrid button:focus-visible{outline:3px solid rgba(19,123,232,.18);outline-offset:2px}
 .monthPickerPopover{position:absolute;top:calc(100% + 8px);right:0;z-index:25;width:336px;padding:18px;background:#fff;border:1px solid #dfe7f0;border-radius:10px;box-shadow:0 16px 38px rgba(24,48,76,.16)}
 .monthPickerYear{display:block;margin-bottom:14px;color:var(--ink);font-size:14px;text-align:center}
+.monthPickerPopover,.floorPickerPopover{transform-origin:top right;animation:pickerIn 180ms ease-out both}
+@keyframes pickerIn{from{opacity:0;transform:translateY(-5px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.monthPickerPopover,.floorPickerPopover{animation:none}.monthPickerTrigger i,.floorPickerTrigger i{transition:none}}
 .monthGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
 .monthGrid button{min-height:42px;padding:7px 5px;color:#435168;background:transparent;border:1px solid transparent;border-radius:7px;font:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:color 140ms ease,background 140ms ease,border-color 140ms ease}
 .monthGrid button:hover{color:var(--ink);background:#f2f6fa;border-color:#e5ebf2}
@@ -132,8 +135,6 @@
 .comparisonTable tbody tr{cursor:pointer;transition:background 140ms ease}
 .comparisonTable tbody tr:hover{background:#f7fbfe}
 .comparisonTable tbody tr:last-child td{border-bottom:0}
-.selectedTableRow td{background:#eef9f6}
-.selectedTableRow:hover td{background:#e7f7f2!important}
 .statusGood,.statusWarning{display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;font-size:9px;font-weight:750}
 .statusGood{color:#067c61;background:#e2f6f0}
 .statusWarning{color:#a3540a;background:#fff0dc}
