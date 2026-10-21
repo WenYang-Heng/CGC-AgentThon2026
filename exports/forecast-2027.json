@@ -1,0 +1,1715 @@
+[
+  {
+    "scope": "building",
+    "floorId": null,
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.03498350125648794,
+    "actual2025Total": 1393880.0,
+    "actual2026Total": 1445340.0,
+    "forecast2027Total": 1492770,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [
+      "March",
+      "May",
+      "July",
+      "September"
+    ],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 110319.0,
+        "actual2026": 115034.0,
+        "forecast2027": 119053,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 108917.0,
+        "actual2026": 111999.0,
+        "forecast2027": 115904,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 103545.0,
+        "actual2026": 104699.0,
+        "forecast2027": 109854,
+        "isAnomaly2026": true
+      },
+      {
+        "month": "Apr",
+        "actual2025": 118845.0,
+        "actual2026": 123548.0,
+        "forecast2027": 127854,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 120394.0,
+        "actual2026": 126874.0,
+        "forecast2027": 130351,
+        "isAnomaly2026": true
+      },
+      {
+        "month": "Jun",
+        "actual2025": 115053.0,
+        "actual2026": 119891.0,
+        "forecast2027": 124101,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 140610.0,
+        "actual2026": 146492.0,
+        "forecast2027": 149685,
+        "isAnomaly2026": true
+      },
+      {
+        "month": "Aug",
+        "actual2025": 119564.0,
+        "actual2026": 122917.0,
+        "forecast2027": 127188,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 105862.0,
+        "actual2026": 111781.0,
+        "forecast2027": 113998,
+        "isAnomaly2026": true
+      },
+      {
+        "month": "Oct",
+        "actual2025": 125691.0,
+        "actual2026": 129233.0,
+        "forecast2027": 133753,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 113656.0,
+        "actual2026": 117163.0,
+        "forecast2027": 121259,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 111424.0,
+        "actual2026": 115709.0,
+        "forecast2027": 119770,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F01",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.03670918659192312,
+    "actual2025Total": 69928.0,
+    "actual2026Total": 72495.0,
+    "forecast2027Total": 75157,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 5555.0,
+        "actual2026": 5816.0,
+        "forecast2027": 6030,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 5064.0,
+        "actual2026": 5429.0,
+        "forecast2027": 5628,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 6089.0,
+        "actual2026": 6118.0,
+        "forecast2027": 6343,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Apr",
+        "actual2025": 6219.0,
+        "actual2026": 6442.0,
+        "forecast2027": 6678,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 6443.0,
+        "actual2026": 6559.0,
+        "forecast2027": 6800,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jun",
+        "actual2025": 5678.0,
+        "actual2026": 5818.0,
+        "forecast2027": 6032,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 7009.0,
+        "actual2026": 7222.0,
+        "forecast2027": 7487,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Aug",
+        "actual2025": 5676.0,
+        "actual2026": 5859.0,
+        "forecast2027": 6074,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 5333.0,
+        "actual2026": 5528.0,
+        "forecast2027": 5731,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Oct",
+        "actual2025": 6050.0,
+        "actual2026": 6170.0,
+        "forecast2027": 6396,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 5509.0,
+        "actual2026": 5789.0,
+        "forecast2027": 6002,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 5303.0,
+        "actual2026": 5745.0,
+        "forecast2027": 5956,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F02",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.035107598831700386,
+    "actual2025Total": 102371.0,
+    "actual2026Total": 105965.0,
+    "forecast2027Total": 109685,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 8256.0,
+        "actual2026": 8385.0,
+        "forecast2027": 8679,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 7370.0,
+        "actual2026": 7502.0,
+        "forecast2027": 7765,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 7402.0,
+        "actual2026": 7468.0,
+        "forecast2027": 7730,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Apr",
+        "actual2025": 8924.0,
+        "actual2026": 9498.0,
+        "forecast2027": 9831,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 8808.0,
+        "actual2026": 9480.0,
+        "forecast2027": 9813,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jun",
+        "actual2025": 8556.0,
+        "actual2026": 8992.0,
+        "forecast2027": 9308,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 10189.0,
+        "actual2026": 10728.0,
+        "forecast2027": 11105,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Aug",
+        "actual2025": 8603.0,
+        "actual2026": 8873.0,
+        "forecast2027": 9185,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 7247.0,
+        "actual2026": 7409.0,
+        "forecast2027": 7669,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Oct",
+        "actual2025": 9672.0,
+        "actual2026": 9761.0,
+        "forecast2027": 10104,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 8888.0,
+        "actual2026": 9205.0,
+        "forecast2027": 9528,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 8456.0,
+        "actual2026": 8664.0,
+        "forecast2027": 8968,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F03",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.049349913549735766,
+    "actual2025Total": 102371.0,
+    "actual2026Total": 107423.0,
+    "forecast2027Total": 112725,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 8256.0,
+        "actual2026": 9029.0,
+        "forecast2027": 9475,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 7370.0,
+        "actual2026": 8060.0,
+        "forecast2027": 8458,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 7402.0,
+        "actual2026": 7567.0,
+        "forecast2027": 7940,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Apr",
+        "actual2025": 8924.0,
+        "actual2026": 9195.0,
+        "forecast2027": 9649,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 8808.0,
+        "actual2026": 8956.0,
+        "forecast2027": 9398,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jun",
+        "actual2025": 8556.0,
+        "actual2026": 9343.0,
+        "forecast2027": 9804,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 10189.0,
+        "actual2026": 10495.0,
+        "forecast2027": 11013,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Aug",
+        "actual2025": 8603.0,
+        "actual2026": 8842.0,
+        "forecast2027": 9278,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 7247.0,
+        "actual2026": 7731.0,
+        "forecast2027": 8113,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Oct",
+        "actual2025": 9672.0,
+        "actual2026": 10170.0,
+        "forecast2027": 10672,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 8888.0,
+        "actual2026": 9081.0,
+        "forecast2027": 9529,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 8456.0,
+        "actual2026": 8954.0,
+        "forecast2027": 9396,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F04",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.006426406197372852,
+    "actual2025Total": 82234.0,
+    "actual2026Total": 84627.0,
+    "forecast2027Total": 83295,
+    "highestForecastMonth": "April",
+    "anomalyMonthsExcluded": [
+      "July"
+    ],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 6503.0,
+        "actual2026": 6802.0,
+        "forecast2027": 6846,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 6892.0,
+        "actual2026": 7012.0,
+        "forecast2027": 7057,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 6307.0,
+        "actual2026": 6234.0,
+        "forecast2027": 6274,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Apr",
+        "actual2025": 7761.0,
+        "actual2026": 8129.0,
+        "forecast2027": 8181,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 6722.0,
+        "actual2026": 6645.0,
+        "forecast2027": 6688,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jun",
+        "actual2025": 6623.0,
+        "actual2026": 6776.0,
+        "forecast2027": 6820,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 8009.0,
+        "actual2026": 9925.0,
+        "forecast2027": 8112,
+        "isAnomaly2026": true
+      },
+      {
+        "month": "Aug",
+        "actual2025": 6924.0,
+        "actual2026": 6905.0,
+        "forecast2027": 6949,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 5989.0,
+        "actual2026": 5847.0,
+        "forecast2027": 5885,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Oct",
+        "actual2025": 7313.0,
+        "actual2026": 7203.0,
+        "forecast2027": 7249,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 6584.0,
+        "actual2026": 6495.0,
+        "forecast2027": 6537,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 6607.0,
+        "actual2026": 6654.0,
+        "forecast2027": 6697,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F05",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.021633623484565656,
+    "actual2025Total": 110866.0,
+    "actual2026Total": 114865.0,
+    "forecast2027Total": 115715,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [
+      "September"
+    ],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 8435.0,
+        "actual2026": 8544.0,
+        "forecast2027": 8729,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 8326.0,
+        "actual2026": 8706.0,
+        "forecast2027": 8894,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 8773.0,
+        "actual2026": 8862.0,
+        "forecast2027": 9054,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Apr",
+        "actual2025": 9479.0,
+        "actual2026": 9307.0,
+        "forecast2027": 9508,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 9294.0,
+        "actual2026": 9787.0,
+        "forecast2027": 9999,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jun",
+        "actual2025": 8800.0,
+        "actual2026": 9221.0,
+        "forecast2027": 9420,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 11135.0,
+        "actual2026": 11344.0,
+        "forecast2027": 11589,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Aug",
+        "actual2025": 10300.0,
+        "actual2026": 10564.0,
+        "forecast2027": 10793,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 9080.0,
+        "actual2026": 10877.0,
+        "forecast2027": 9477,
+        "isAnomaly2026": true
+      },
+      {
+        "month": "Oct",
+        "actual2025": 9547.0,
+        "actual2026": 9835.0,
+        "forecast2027": 10048,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 8786.0,
+        "actual2026": 8951.0,
+        "forecast2027": 9145,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 8911.0,
+        "actual2026": 8867.0,
+        "forecast2027": 9059,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F06",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.028396769996489126,
+    "actual2025Total": 48421.0,
+    "actual2026Total": 49796.0,
+    "forecast2027Total": 51211,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 3849.0,
+        "actual2026": 4073.0,
+        "forecast2027": 4189,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 3892.0,
+        "actual2026": 3928.0,
+        "forecast2027": 4040,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 3403.0,
+        "actual2026": 3516.0,
+        "forecast2027": 3616,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Apr",
+        "actual2025": 4415.0,
+        "actual2026": 4655.0,
+        "forecast2027": 4787,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 3807.0,
+        "actual2026": 3922.0,
+        "forecast2027": 4033,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jun",
+        "actual2025": 4100.0,
+        "actual2026": 4119.0,
+        "forecast2027": 4236,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 4683.0,
+        "actual2026": 4748.0,
+        "forecast2027": 4883,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Aug",
+        "actual2025": 4225.0,
+        "actual2026": 4414.0,
+        "forecast2027": 4539,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 3811.0,
+        "actual2026": 3945.0,
+        "forecast2027": 4057,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Oct",
+        "actual2025": 4653.0,
+        "actual2026": 4673.0,
+        "forecast2027": 4806,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 4245.0,
+        "actual2026": 4333.0,
+        "forecast2027": 4456,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 3338.0,
+        "actual2026": 3470.0,
+        "forecast2027": 3569,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F07",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.031051575961008864,
+    "actual2025Total": 96227.0,
+    "actual2026Total": 99215.0,
+    "forecast2027Total": 102296,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 7690.0,
+        "actual2026": 8201.0,
+        "forecast2027": 8456,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 8678.0,
+        "actual2026": 8820.0,
+        "forecast2027": 9094,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 5796.0,
+        "actual2026": 6136.0,
+        "forecast2027": 6327,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Apr",
+        "actual2025": 7581.0,
+        "actual2026": 7645.0,
+        "forecast2027": 7882,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 8816.0,
+        "actual2026": 9373.0,
+        "forecast2027": 9664,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jun",
+        "actual2025": 7393.0,
+        "actual2026": 7568.0,
+        "forecast2027": 7803,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 9967.0,
+        "actual2026": 10082.0,
+        "forecast2027": 10395,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Aug",
+        "actual2025": 8821.0,
+        "actual2026": 8935.0,
+        "forecast2027": 9212,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 7586.0,
+        "actual2026": 7706.0,
+        "forecast2027": 7945,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Oct",
+        "actual2025": 8898.0,
+        "actual2026": 9203.0,
+        "forecast2027": 9489,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 7612.0,
+        "actual2026": 7723.0,
+        "forecast2027": 7963,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 7389.0,
+        "actual2026": 7823.0,
+        "forecast2027": 8066,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F08",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.048911410244453425,
+    "actual2025Total": 104167.0,
+    "actual2026Total": 107813.0,
+    "forecast2027Total": 114604,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [
+      "March"
+    ],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 7637.0,
+        "actual2026": 7796.0,
+        "forecast2027": 8177,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 7938.0,
+        "actual2026": 8206.0,
+        "forecast2027": 8607,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 7666.0,
+        "actual2026": 6592.0,
+        "forecast2027": 8434,
+        "isAnomaly2026": true
+      },
+      {
+        "month": "Apr",
+        "actual2025": 9036.0,
+        "actual2026": 9692.0,
+        "forecast2027": 10166,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 9459.0,
+        "actual2026": 9829.0,
+        "forecast2027": 10310,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jun",
+        "actual2025": 8952.0,
+        "actual2026": 9626.0,
+        "forecast2027": 10097,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 10158.0,
+        "actual2026": 10946.0,
+        "forecast2027": 11481,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Aug",
+        "actual2025": 8503.0,
+        "actual2026": 8765.0,
+        "forecast2027": 9194,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 7803.0,
+        "actual2026": 8535.0,
+        "forecast2027": 8952,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Oct",
+        "actual2025": 9383.0,
+        "actual2026": 9858.0,
+        "forecast2027": 10340,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 8701.0,
+        "actual2026": 8942.0,
+        "forecast2027": 9379,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 8931.0,
+        "actual2026": 9026.0,
+        "forecast2027": 9467,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F09",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.0568646717284502,
+    "actual2025Total": 111950.0,
+    "actual2026Total": 118316.0,
+    "forecast2027Total": 125044,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 9103.0,
+        "actual2026": 9933.0,
+        "forecast2027": 10498,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 9344.0,
+        "actual2026": 9837.0,
+        "forecast2027": 10396,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 8739.0,
+        "actual2026": 8903.0,
+        "forecast2027": 9409,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Apr",
+        "actual2025": 9629.0,
+        "actual2026": 10338.0,
+        "forecast2027": 10926,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 10066.0,
+        "actual2026": 10924.0,
+        "forecast2027": 11545,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jun",
+        "actual2025": 9655.0,
+        "actual2026": 10426.0,
+        "forecast2027": 11019,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 11547.0,
+        "actual2026": 11751.0,
+        "forecast2027": 12419,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Aug",
+        "actual2025": 9729.0,
+        "actual2026": 10006.0,
+        "forecast2027": 10575,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 8142.0,
+        "actual2026": 8632.0,
+        "forecast2027": 9123,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Oct",
+        "actual2025": 9241.0,
+        "actual2026": 9808.0,
+        "forecast2027": 10366,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 8274.0,
+        "actual2026": 8670.0,
+        "forecast2027": 9163,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 8481.0,
+        "actual2026": 9088.0,
+        "forecast2027": 9605,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F10",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.025664246452364828,
+    "actual2025Total": 126986.0,
+    "actual2026Total": 130245.0,
+    "forecast2027Total": 133586,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 9594.0,
+        "actual2026": 9899.0,
+        "forecast2027": 10153,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 9340.0,
+        "actual2026": 9240.0,
+        "forecast2027": 9477,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 9221.0,
+        "actual2026": 9793.0,
+        "forecast2027": 10044,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Apr",
+        "actual2025": 10232.0,
+        "actual2026": 10423.0,
+        "forecast2027": 10690,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 10715.0,
+        "actual2026": 11023.0,
+        "forecast2027": 11306,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jun",
+        "actual2025": 10847.0,
+        "actual2026": 10878.0,
+        "forecast2027": 11157,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 12826.0,
+        "actual2026": 12627.0,
+        "forecast2027": 12951,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Aug",
+        "actual2025": 10888.0,
+        "actual2026": 11202.0,
+        "forecast2027": 11489,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 10249.0,
+        "actual2026": 10861.0,
+        "forecast2027": 11140,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Oct",
+        "actual2025": 11822.0,
+        "actual2026": 12080.0,
+        "forecast2027": 12390,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 10662.0,
+        "actual2026": 11071.0,
+        "forecast2027": 11355,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 10590.0,
+        "actual2026": 11148.0,
+        "forecast2027": 11434,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F11",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.025657079501728297,
+    "actual2025Total": 76665.0,
+    "actual2026Total": 78632.0,
+    "forecast2027Total": 80648,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 6208.0,
+        "actual2026": 6330.0,
+        "forecast2027": 6492,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 5838.0,
+        "actual2026": 5795.0,
+        "forecast2027": 5944,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 5428.0,
+        "actual2026": 5408.0,
+        "forecast2027": 5547,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Apr",
+        "actual2025": 6141.0,
+        "actual2026": 6400.0,
+        "forecast2027": 6564,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 7089.0,
+        "actual2026": 7249.0,
+        "forecast2027": 7435,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jun",
+        "actual2025": 6514.0,
+        "actual2026": 6602.0,
+        "forecast2027": 6771,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 7976.0,
+        "actual2026": 8407.0,
+        "forecast2027": 8623,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Aug",
+        "actual2025": 6933.0,
+        "actual2026": 7071.0,
+        "forecast2027": 7252,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 6168.0,
+        "actual2026": 6333.0,
+        "forecast2027": 6495,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Oct",
+        "actual2025": 6630.0,
+        "actual2026": 6847.0,
+        "forecast2027": 7023,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 6128.0,
+        "actual2026": 6520.0,
+        "forecast2027": 6687,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 5612.0,
+        "actual2026": 5670.0,
+        "forecast2027": 5815,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F12",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.02813929362946197,
+    "actual2025Total": 91425.0,
+    "actual2026Total": 94967.0,
+    "forecast2027Total": 96642,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [
+      "May"
+    ],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 7883.0,
+        "actual2026": 8127.0,
+        "forecast2027": 8356,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 7797.0,
+        "actual2026": 7829.0,
+        "forecast2027": 8049,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 7344.0,
+        "actual2026": 7518.0,
+        "forecast2027": 7730,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Apr",
+        "actual2025": 7731.0,
+        "actual2026": 7992.0,
+        "forecast2027": 8217,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 6597.0,
+        "actual2026": 7752.0,
+        "forecast2027": 6973,
+        "isAnomaly2026": true
+      },
+      {
+        "month": "Jun",
+        "actual2025": 7431.0,
+        "actual2026": 7561.0,
+        "forecast2027": 7774,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 9226.0,
+        "actual2026": 9592.0,
+        "forecast2027": 9862,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Aug",
+        "actual2025": 7724.0,
+        "actual2026": 7973.0,
+        "forecast2027": 8197,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 7110.0,
+        "actual2026": 7622.0,
+        "forecast2027": 7836,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Oct",
+        "actual2025": 8182.0,
+        "actual2026": 8442.0,
+        "forecast2027": 8680,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 7038.0,
+        "actual2026": 7119.0,
+        "forecast2027": 7319,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 7362.0,
+        "actual2026": 7440.0,
+        "forecast2027": 7649,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F13",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.049789196473831926,
+    "actual2025Total": 80881.0,
+    "actual2026Total": 84908.0,
+    "forecast2027Total": 89135,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 6139.0,
+        "actual2026": 6390.0,
+        "forecast2027": 6708,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 6501.0,
+        "actual2026": 6691.0,
+        "forecast2027": 7024,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 5959.0,
+        "actual2026": 6072.0,
+        "forecast2027": 6374,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Apr",
+        "actual2025": 7061.0,
+        "actual2026": 7452.0,
+        "forecast2027": 7823,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 7047.0,
+        "actual2026": 7654.0,
+        "forecast2027": 8035,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jun",
+        "actual2025": 6095.0,
+        "actual2026": 6650.0,
+        "forecast2027": 6981,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 7743.0,
+        "actual2026": 8152.0,
+        "forecast2027": 8558,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Aug",
+        "actual2025": 6896.0,
+        "actual2026": 7189.0,
+        "forecast2027": 7547,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 6480.0,
+        "actual2026": 6746.0,
+        "forecast2027": 7082,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Oct",
+        "actual2025": 7660.0,
+        "actual2026": 7769.0,
+        "forecast2027": 8156,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 6510.0,
+        "actual2026": 6884.0,
+        "forecast2027": 7227,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 6790.0,
+        "actual2026": 7259.0,
+        "forecast2027": 7620,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F14",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.025385804561850776,
+    "actual2025Total": 73742.0,
+    "actual2026Total": 75614.0,
+    "forecast2027Total": 77534,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 6077.0,
+        "actual2026": 6314.0,
+        "forecast2027": 6474,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 5944.0,
+        "actual2026": 5896.0,
+        "forecast2027": 6046,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 5630.0,
+        "actual2026": 5776.0,
+        "forecast2027": 5923,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Apr",
+        "actual2025": 6243.0,
+        "actual2026": 6353.0,
+        "forecast2027": 6514,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 6299.0,
+        "actual2026": 6617.0,
+        "forecast2027": 6785,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jun",
+        "actual2025": 5939.0,
+        "actual2026": 6200.0,
+        "forecast2027": 6357,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 7479.0,
+        "actual2026": 7408.0,
+        "forecast2027": 7596,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Aug",
+        "actual2025": 6283.0,
+        "actual2026": 6409.0,
+        "forecast2027": 6572,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 5540.0,
+        "actual2026": 5584.0,
+        "forecast2027": 5726,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Oct",
+        "actual2025": 6011.0,
+        "actual2026": 6094.0,
+        "forecast2027": 6249,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 6042.0,
+        "actual2026": 6329.0,
+        "forecast2027": 6490,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 6255.0,
+        "actual2026": 6634.0,
+        "forecast2027": 6802,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F15",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.02897665144400849,
+    "actual2025Total": 62188.0,
+    "actual2026Total": 63990.0,
+    "forecast2027Total": 65843,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 4817.0,
+        "actual2026": 4873.0,
+        "forecast2027": 5014,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 4543.0,
+        "actual2026": 4846.0,
+        "forecast2027": 4986,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 4269.0,
+        "actual2026": 4357.0,
+        "forecast2027": 4483,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Apr",
+        "actual2025": 5434.0,
+        "actual2026": 5628.0,
+        "forecast2027": 5791,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 5613.0,
+        "actual2026": 5915.0,
+        "forecast2027": 6086,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jun",
+        "actual2025": 5757.0,
+        "actual2026": 5820.0,
+        "forecast2027": 5989,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 6735.0,
+        "actual2026": 6938.0,
+        "forecast2027": 7139,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Aug",
+        "actual2025": 4928.0,
+        "actual2026": 4968.0,
+        "forecast2027": 5112,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 4660.0,
+        "actual2026": 4835.0,
+        "forecast2027": 4975,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Oct",
+        "actual2025": 6013.0,
+        "actual2026": 6294.0,
+        "forecast2027": 6476,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 5005.0,
+        "actual2026": 5042.0,
+        "forecast2027": 5188,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 4414.0,
+        "actual2026": 4474.0,
+        "forecast2027": 4604,
+        "isAnomaly2026": false
+      }
+    ]
+  },
+  {
+    "scope": "floor",
+    "floorId": "F16",
+    "baselineYear": 2025,
+    "currentYear": 2026,
+    "forecastYear": 2027,
+    "method": "baseline_growth",
+    "growthRate": 0.056324591267911256,
+    "actual2025Total": 53458.0,
+    "actual2026Total": 56469.0,
+    "forecast2027Total": 59650,
+    "highestForecastMonth": "July",
+    "anomalyMonthsExcluded": [],
+    "monthly": [
+      {
+        "month": "Jan",
+        "actual2025": 4317.0,
+        "actual2026": 4522.0,
+        "forecast2027": 4777,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Feb",
+        "actual2025": 4080.0,
+        "actual2026": 4202.0,
+        "forecast2027": 4439,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Mar",
+        "actual2025": 4117.0,
+        "actual2026": 4379.0,
+        "forecast2027": 4626,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Apr",
+        "actual2025": 4035.0,
+        "actual2026": 4399.0,
+        "forecast2027": 4647,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "May",
+        "actual2025": 4811.0,
+        "actual2026": 5189.0,
+        "forecast2027": 5481,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jun",
+        "actual2025": 4157.0,
+        "actual2026": 4291.0,
+        "forecast2027": 4533,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Jul",
+        "actual2025": 5739.0,
+        "actual2026": 6127.0,
+        "forecast2027": 6472,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Aug",
+        "actual2025": 4528.0,
+        "actual2026": 4942.0,
+        "forecast2027": 5220,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Sep",
+        "actual2025": 3417.0,
+        "actual2026": 3590.0,
+        "forecast2027": 3792,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Oct",
+        "actual2025": 4944.0,
+        "actual2026": 5026.0,
+        "forecast2027": 5309,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Nov",
+        "actual2025": 4784.0,
+        "actual2026": 5009.0,
+        "forecast2027": 5291,
+        "isAnomaly2026": false
+      },
+      {
+        "month": "Dec",
+        "actual2025": 4529.0,
+        "actual2026": 4793.0,
+        "forecast2027": 5063,
+        "isAnomaly2026": false
+      }
+    ]
+  }
+]
