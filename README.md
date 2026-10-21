@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Energy Management Intelligence
 
-## Getting Started
+## Run locally
 
-First, run the development server:
+Requires Node.js 20.9 or newer and npm.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. Place the workbook at `data/CGC_Energy_AgentThon_Data_Template_1.xlsx`. It must contain the `Energy_Data`, `Floor_Master`, `Occupancy`, and `Emission_Factor` sheets. The data folder is excluded from Git.
+2. Install dependencies: `npm ci`.
+3. Start the development server: `npm run dev`.
+4. Open http://localhost:3000.
+
+Stop with Ctrl+C; restart with `npm run dev`.
+
+If PowerShell cannot find an existing Node.js installation, run these commands from the project directory:
+
+```powershell
+$env:Path = 'C:\Program Files\nodejs;' + $env:Path
+npm.cmd run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+For a fresh install in that terminal, run `npm.cmd ci` first.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Optional Copilot connection
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The dashboard runs without Copilot credentials. To connect from `/copilot-test`, create `.env.local` with your published agent and Microsoft Entra application values:
 
-## Learn More
+```dotenv
+NEXT_PUBLIC_COPILOT_ENVIRONMENT_ID=
+NEXT_PUBLIC_COPILOT_TENANT_ID=
+NEXT_PUBLIC_COPILOT_SCHEMA_NAME=
+NEXT_PUBLIC_COPILOT_CLIENT_ID=
+```
 
-To learn more about Next.js, take a look at the following resources:
+Restart the server after editing the environment file. Connection requires an authorized tenant account and an application configured for the local SPA redirect URI.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The optional server-to-server test additionally requires `COPILOT_CLIENT_SECRET` and appropriate tenant permissions:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```powershell
+node --env-file=.env.local scripts/test-copilot-s2s.mjs
+```
 
-## Deploy on Vercel
+Keep the client secret out of `NEXT_PUBLIC_` variables. Environment files are excluded from Git.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Checks and production
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```shell
+npm run lint
+npx tsc --noEmit
+npm run build
+npm start
+```
+
+The production build requires the workbook. `npm start` serves a previously completed production build.

@@ -65,8 +65,10 @@ for (const text of openingText) console.log(`Agent: ${text}`);
 
 console.log("Sending test message...");
 const replies = await client.askQuestionAsync(
-  "Reply with a short confirmation that the Energy Analytics Assistant connection is working.",
+  process.argv[2] || "Reply with a short confirmation that the Energy Analytics Assistant connection is working.",
 );
+console.log("Returned activity payloads:");
+console.log(JSON.stringify(replies, null, 2));
 const replyText = replies
   .map((activity) => activity.text)
   .filter((text) => typeof text === "string" && text.trim());

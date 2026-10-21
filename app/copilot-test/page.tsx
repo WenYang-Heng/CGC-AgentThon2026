@@ -3,6 +3,8 @@
 import { FormEvent, useRef, useState } from "react";
 import Link from "next/link";
 import { PublicClientApplication } from "@azure/msal-browser";
+import { Activity } from "@microsoft/agents-activity";
+import { readConsentCard, type ConsentCard, type ConsentAction } from "@/lib/copilot-consent";
 import {
   ConnectionSettings,
   CopilotStudioClient,
@@ -14,6 +16,9 @@ type Message = {
   id: number;
   role: "agent" | "user" | "system";
   text: string;
+  consent?: ConsentCard;
+  activityId?: string;
+  submitted?: boolean;
 };
 
 const config = {
@@ -34,11 +39,21 @@ function activityMessages(
   startingId: number,
 ) {
   return activities
-    .filter((activity) => typeof activity.text === "string" && activity.text.trim())
-    .map((activity, index): Message => ({
+    .filter((activity) => activity.type === "message")
+    .map((activity) => {
+      const consent = activity.attachments
+        ?.filter((attachment) => attachment.contentType === "application/vnd.microsoft.card.adaptive")
+        .map((attachment) => readConsentCard(attachment.content))
+        .find((card) => card !== undefined);
+      return { activity, consent };
+    })
+    .filter(({ activity, consent }) => activity.text?.trim() || consent || activity.attachments?.length)
+    .map(({ activity, consent }, index): Message => ({
       id: startingId + index,
       role: "agent",
-      text: activity.text!.trim(),
+      text: consent?.text || activity.text?.trim() || "The agent returned an attachment. See the returned activities log for its contents.",
+      consent,
+      activityId: activity.id,
     }));
 }
 
@@ -53,6 +68,8 @@ export default function CopilotTestPage() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [error, setError] = useState("");
+  const [sending, setSending] = useState(false);
+  const requestPendingRef = useRef(false);
   const clientRef = useRef<CopilotStudioClient | null>(null);
   const nextIdRef = useRef(1);
 
@@ -82,6 +99,9 @@ export default function CopilotTestPage() {
 
       const client = new CopilotStudioClient(connectionSettings, auth.accessToken);
       const openingActivities = await client.startConversationAsync(true);
+      if (process.env.NODE_ENV === "development") {
+        console.log("[Copilot] Conversation opening activities:", JSON.stringify(openingActivities, null, 2));
+      }
       const openingMessages = activityMessages(openingActivities, nextIdRef.current);
       nextIdRef.current += openingMessages.length;
       clientRef.current = client;
@@ -98,7 +118,9 @@ export default function CopilotTestPage() {
     event.preventDefault();
     const question = message.trim();
     const client = clientRef.current;
-    if (!question || !client) return;
+    if (!question || !client || requestPendingRef.current) return;
+    requestPendingRef.current = true;
+    setSending(true);
 
     const userMessage: Message = { id: nextIdRef.current++, role: "user", text: question };
     setMessages((current) => [...current, userMessage]);
@@ -107,6 +129,9 @@ export default function CopilotTestPage() {
 
     try {
       const replies = await client.askQuestionAsync(question);
+      if (process.env.NODE_ENV === "development") {
+        console.log("[Copilot] Returned activities:", JSON.stringify(replies, null, 2));
+      }
       const agentMessages = activityMessages(replies, nextIdRef.current);
       nextIdRef.current += agentMessages.length;
       setMessages((current) => [
@@ -114,7 +139,44 @@ export default function CopilotTestPage() {
         ...(agentMessages.length ? agentMessages : [{ id: nextIdRef.current++, role: "system", text: "The agent returned no text response." } as Message]),
       ]);
     } catch (sendError) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[Copilot] Message request failed:", readableError(sendError));
+      }
       setError(readableError(sendError));
+    } finally {
+      requestPendingRef.current = false;
+      setSending(false);
+    }
+  };
+
+  const submitConsent = async (item: Message, action: ConsentAction) => {
+    const client = clientRef.current;
+    if (!client || item.submitted || requestPendingRef.current) return;
+    requestPendingRef.current = true;
+    setSending(true);
+    setError("");
+    try {
+      const replies = await client.sendActivity(Activity.fromObject({
+        type: "message",
+        replyToId: item.activityId,
+        channelData: { postBack: true },
+        value: action.data,
+      }));
+      if (process.env.NODE_ENV === "development") {
+        console.log("[Copilot] Returned activities:", JSON.stringify(replies, null, 2));
+      }
+      const agentMessages = activityMessages(replies, nextIdRef.current);
+      nextIdRef.current += agentMessages.length;
+      setMessages((current) => [
+        ...current.map((entry) => entry.id === item.id ? { ...entry, submitted: true } : entry),
+        { id: nextIdRef.current++, role: "user", text: action.title },
+        ...agentMessages,
+      ]);
+    } catch (submitError) {
+      setError(readableError(submitError));
+    } finally {
+      requestPendingRef.current = false;
+      setSending(false);
     }
   };
 
@@ -124,7 +186,6 @@ export default function CopilotTestPage() {
         <div>
           <span className={styles.testBadge}>Temporary local test</span>
           <h1>Copilot Studio connection test</h1>
-          <p>Sign in with an authorized tenant account, start a conversation, and send messages directly to the published agent.</p>
         </div>
         <Link href="/">Return to dashboard</Link>
       </header>
@@ -161,6 +222,18 @@ export default function CopilotTestPage() {
             <article key={item.id} className={styles[item.role]}>
               <span>{item.role === "user" ? "You" : item.role === "agent" ? "Agent" : "System"}</span>
               <p>{item.text}</p>
+              {item.consent && (
+                <div className={styles.consentActions}>
+                  {item.consent.actions.map((action) => (
+                    <button key={String(action.data.action)} type="button"
+                      disabled={sending || item.submitted || status !== "connected"}
+                      onClick={() => void submitConsent(item, action)}>
+                      {action.title}
+                    </button>
+                  ))}
+                  {item.submitted && <small>Choice sent</small>}
+                </div>
+              )}
             </article>
           ))}
         </div>
@@ -168,7 +241,7 @@ export default function CopilotTestPage() {
           <label htmlFor="copilot-test-message">Test message</label>
           <div>
             <textarea id="copilot-test-message" rows={3} value={message} onChange={(event) => setMessage(event.target.value)} disabled={status !== "connected"} placeholder={status === "connected" ? "Ask the energy analytics assistant a question…" : "Connect to the agent first"} />
-            <button type="submit" disabled={status !== "connected" || !message.trim()}>Send message</button>
+            <button type="submit" disabled={status !== "connected" || !message.trim() || sending}>{sending ? "Waiting for agent…" : "Send message"}</button>
           </div>
         </form>
       </section>
