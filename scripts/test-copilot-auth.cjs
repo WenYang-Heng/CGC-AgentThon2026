@@ -3,6 +3,10 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const test = require('node:test');
 const ts = require('typescript');
+const summaryModule = { exports: {} };
+vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/copilot-management-summary-data.ts', 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+}).outputText, summaryModule);
 
 const compiled = ts.transpileModule(fs.readFileSync('services/chatbot-service.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
@@ -50,6 +54,7 @@ function setup() {
       if (name === '@/lib/copilot-consent') return { readConsentCard: () => undefined };
       if (name === '@/lib/copilot-dashboard-data') return { parseCopilotDashboardPayload: () => undefined };
       if (name === '@/lib/copilot-recommendations-data') return { parseCopilotRecommendations: () => undefined };
+      if (name === '@/lib/copilot-management-summary-data') return summaryModule.exports;
       throw new Error(`Unexpected dependency ${name}`);
     },
   });
@@ -143,6 +148,29 @@ test('report failures explain a missing confirmation and never invent a ticket I
   const failed = await api.createEnergyWasteReport(payload);
   assert.equal(failed.success, false);
   assert.equal(failed.message, 'Ticket action unavailable.');
+});
+
+test('Management summary uses the shared client and sends only the energy context as a custom event', async () => {
+  const { api, state, account } = setup(); state.accounts = [account];
+  const payload = { floorId: 'F04', floorName: 'Floor 4', analysisPeriod: 'January to March', baselineYear: 2025, currentYear: 2026, forecastYear: 2027, baselineKWh: 100, currentKWh: 110, changePercent: 10, forecastKWh: 120, highestForecastMonth: 'March', forecastMethod: 'baseline_growth', anomalyCount: 1, anomalyMonths: ['March'] };
+  const summary = { headline: 'Heading', summary: 'Summary', keyConcern: 'Concern', recommendedFocus: 'Focus' };
+  state.eventResponse = JSON.stringify({ managementSummary: summary });
+  const response = await api.requestCopilotManagementSummary(payload);
+  assert.equal(response.managementSummaryPayload.managementSummary.headline, 'Heading');
+  assert.equal(state.calls[0].activity.name, 'ui_generate_management_summary');
+  assert.equal(state.calls[0].activity.type, 'event');
+  assert.deepEqual(state.calls[0].activity.value, payload);
+  assert.equal(state.clients, 1);
+  assert.equal(state.popup, 0);
+  await api.sendChatMessage('Hello');
+  await api.requestCopilotRecommendations({ floorId: 'F04' });
+  assert.equal(state.clients, 1);
+  assert.equal(state.calls[1].kind, 'chat');
+  assert.equal(state.calls[2].activity.name, 'get_recommendation');
+  state.eventResponse = 'Not JSON';
+  assert.equal((await api.requestCopilotManagementSummary(payload)).managementSummaryPayload, undefined);
+  state.eventResponse = '';
+  await assert.rejects(api.requestCopilotManagementSummary(payload), /final Message node/);
 });
 
 test('Insights email uses one custom event with the exact payload and checks the result', async () => {

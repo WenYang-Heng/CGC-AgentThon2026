@@ -1,0 +1,2 @@
+.tooltip{position:absolute;top:12px;z-index:2;display:grid;gap:8px;width:320px;max-width:calc(100% - 16px);padding:12px;border-radius:9px;background:#222222;color:#ECEFF1;box-shadow:0 6px 18px rgba(0,0,0,.14);font-size:15px;line-height:1.5;pointer-events:none;font-variant-numeric:tabular-nums}
+.tooltip>strong{font-size:16px}.tooltip>div:first-of-type{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}.tooltip b{white-space:nowrap;font-weight:600}.increase{color:#fca5a5}.decrease{color:#6ee7b7}.difference{color:#60a5fa}

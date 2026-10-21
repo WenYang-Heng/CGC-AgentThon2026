@@ -8,8 +8,13 @@ import {
   useState,
 } from "react";
 
+import EnergyFilterBar from "@/components/EnergyFilters/EnergyFilterBar";
+import { useEnergyFilters } from "@/lib/use-energy-filters";
+import { MONTHS as months, MONTH_NAMES as monthNames, formatPeriodLabel, getPeriodMonthIndices } from "@/lib/energy-filters";
 import Sidebar from "@/components/Sidebar/Sidebar";
 import StatCard from "@/components/StatCard/StatCard";
+import ElectricityLineChart from "@/components/charts/ElectricityLineChart";
+import CarbonChangeBarChart from "@/components/charts/CarbonChangeBarChart";
 import type {
   EnergyDashboardData,
   EnergyFloorData,
@@ -34,40 +39,10 @@ const sidebarItems = [
   },
 ];
 
-const months = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-] as const;
-
-const monthNames = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-] as const;
-
 type FloorId = string;
 type FloorEntry = [FloorId, EnergyFloorData];
 
-type Scope = "ALL" | FloorId;
+
 
 type IconName =
   | "bolt"
@@ -227,8 +202,12 @@ function monthlyTotals(entries: FloorEntry[], year: "baseline2025" | "current202
 
 type ChartSeries = { id: string; label: string; values: (number | null)[]; color: string };
 
-function LineChart({ series, activeMonthIndex, label, unit = "kWh" }: {
-  series: ChartSeries[]; activeMonthIndex: number; label: string; unit?: string;
+// Set false to restore the original SVG dashboard charts.
+const USE_CHARTJS_DASHBOARD = true;
+const ElectricityChart = USE_CHARTJS_DASHBOARD ? ElectricityLineChart : LineChart;
+
+function LineChart({ series, activeMonthIndex, label, unit = "kWh", monthLabels = months }: {
+  series: ChartSeries[]; activeMonthIndex: number; label: string; unit?: string; monthLabels?: string[];
 }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const width = 760, height = 280, left = 58, right = 18, top = 28, bottom = 42;
@@ -245,7 +224,7 @@ function LineChart({ series, activeMonthIndex, label, unit = "kWh" }: {
   return <div className={styles.chartWrapper}>
     <svg className={styles.lineChart} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label} onPointerLeave={() => setHoveredIndex(null)}>
       {ticks.map(tick => <g key={tick}><line x1={left} y1={y(tick)} x2={width - right} y2={y(tick)} className={styles.gridLine} /><text x={left - 10} y={y(tick) + 4} textAnchor="end" className={styles.axisText}>{tick >= 1000 ? `${tick / 1000}k` : tick}</text></g>)}
-      {months.map((month, index) => <text key={month} x={x(index)} y={height - 13} textAnchor="middle" className={styles.axisText}>{month}</text>)}
+      {monthLabels.map((month, index) => <text key={month} x={x(index)} y={height - 13} textAnchor="middle" className={styles.axisText}>{month}</text>)}
       {series.map(item => {
         let previous = false;
         const path = item.values.map((value, index) => {
@@ -254,11 +233,11 @@ function LineChart({ series, activeMonthIndex, label, unit = "kWh" }: {
           previous = true;
           return segment;
         }).join(" ");
-        return <g key={item.id}><path d={path} pathLength="1" className={styles.chartLine} style={{ stroke: item.color }} />{item.values.map((value, index) => value === null ? null : <circle key={index} cx={x(index)} cy={y(value)} r={index === active ? 4.8 : 3.2} className={styles.chartPoint} style={{ fill: item.color }}><title>{months[index] + " · " + item.label + ": " + formatValue(value)}</title></circle>)}</g>;
+        return <g key={item.id}><path d={path} pathLength="1" className={styles.chartLine} style={{ stroke: item.color }} />{item.values.map((value, index) => value === null ? null : <circle key={index} cx={x(index)} cy={y(value)} r={index === active ? 4.8 : 3.2} className={styles.chartPoint} style={{ fill: item.color }}><title>{monthLabels[index] + " · " + item.label + ": " + formatValue(value)}</title></circle>)}</g>;
       })}
       <line x1={x(active)} y1={top} x2={x(active)} y2={height - bottom} className={styles.chartHoverGuide} />
       <g className={styles.peakLabel} transform={`translate(${Math.min(width - 215, Math.max(left, x(active) - 80))} 3)`}><rect width="205" height="55" rx="8" /><text x="10" y="14">{monthNames[active]}</text>{series.map((item, index) => <text key={item.id} x="10" y={29 + index * 15}>{item.label}: {formatValue(item.values[active])}</text>)}</g>
-      {months.map((month, index) => <rect key={month} x={Math.max(left, x(index) - 30)} y={top} width="60" height={height - top - bottom} className={styles.chartHitArea} tabIndex={0} role="button" aria-label={month + ": " + series.map(item => item.label + " " + formatValue(item.values[index])).join(", ")} onPointerEnter={() => setHoveredIndex(index)} onFocus={() => setHoveredIndex(index)} onBlur={() => setHoveredIndex(null)} />)}
+      {monthLabels.map((month, index) => <rect key={month} x={Math.max(left, x(index) - 30)} y={top} width="60" height={height - top - bottom} className={styles.chartHitArea} tabIndex={0} role="button" aria-label={month + ": " + series.map(item => item.label + " " + formatValue(item.values[index])).join(", ")} onPointerEnter={() => setHoveredIndex(index)} onFocus={() => setHoveredIndex(index)} onBlur={() => setHoveredIndex(null)} />)}
     </svg>
     <div className={styles.seriesLegend}>{series.map(item => <span key={item.id}><i style={{ backgroundColor: item.color }} /><b>{item.label}</b></span>)}</div>
     {series.some(item => item.values.some(value => value === null)) ? <p className={styles.comparisonHighlight}>Missing readings are unavailable and appear as chart gaps.</p> : null}
@@ -272,7 +251,7 @@ type CarbonMonth = {
 };
 
 function carbonMonthlyChanges(baseline: (number | null)[], current: (number | null)[], factor: number | null): CarbonMonth[] {
-  return months.map((_, index) => {
+  return baseline.map((_, index) => {
     const previous = baseline[index] == null || factor === null ? null : baseline[index]! * factor;
     const generated = current[index] == null || factor === null ? null : current[index]! * factor;
     return { baseline: previous, current: generated,
@@ -293,8 +272,8 @@ function percentageAxis(values: (number | null)[]) {
   return { minimum, maximum, ticks };
 }
 
-function CarbonChangeChart({ data, activeMonthIndex, label }: {
-  data: CarbonMonth[]; activeMonthIndex: number; label: string;
+function CarbonChangeChart({ data, activeMonthIndex, label, monthLabels = months }: {
+  data: CarbonMonth[]; activeMonthIndex: number; label: string; monthLabels?: string[];
 }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const width = 760, height = 280, left = 70, right = 18, top = 28, bottom = 42;
@@ -312,10 +291,10 @@ function CarbonChangeChart({ data, activeMonthIndex, label }: {
       <text x={left} y="15" className={styles.axisText}>Change (%)</text>
       {axis.ticks.map(tick => <g key={tick}><line x1={left} y1={y(tick)} x2={width - right} y2={y(tick)} className={styles.gridLine} /><text x={left - 10} y={y(tick) + 4} textAnchor="end" className={styles.axisText}>{`${tick > 0 ? "+" : ""}${tick}%`}</text></g>)}
       <line x1={left} y1={y(0)} x2={width - right} y2={y(0)} stroke="#66748b" strokeWidth="1.8" />
-      {data.map((month, index) => <g key={months[index]}>
+      {data.map((month, index) => <g key={monthLabels[index]}>
         {month.change === null ? <text x={x(index)} y={y(0) - 7} textAnchor="middle" className={styles.axisText}>N/A</text> :
           <rect x={x(index) - step * .28} y={Math.min(y(0), y(month.change))} width={step * .56} height={Math.max(1, Math.abs(y(month.change) - y(0)))} rx="2" fill={month.change > 0 ? "#df7771" : "#0bb894"} opacity={index === active ? 1 : .8}><title>{tooltip(index)}</title></rect>}
-        <text x={x(index)} y={height - 13} textAnchor="middle" className={styles.axisText}>{months[index]}</text>
+        <text x={x(index)} y={height - 13} textAnchor="middle" className={styles.axisText}>{monthLabels[index]}</text>
         <rect x={left + index * step} y={top} width={step} height={height - top - bottom} className={styles.chartHitArea} tabIndex={0} role="button" aria-label={tooltip(index)} onPointerEnter={() => setHoveredIndex(index)} onFocus={() => setHoveredIndex(index)} onBlur={() => setHoveredIndex(null)}><title>{tooltip(index)}</title></rect>
       </g>)}
       {hoveredIndex !== null ? <g className={styles.peakLabel} transform={`translate(${hoveredIndex >= 6 ? left : width - right - 345} 3)`}>
@@ -360,25 +339,10 @@ function PanelHead({
 export default function EnergyDashboard({ dashboardData }: { dashboardData: EnergyDashboardData }) {
   const { floors, emissionFactor } = dashboardData;
   const floorEntries = useMemo(() => Object.entries(floors) as FloorEntry[], [floors]);
-  const floorOptions = floorEntries.map(([, floor]) => floor.label);
-  const [scope, setScope] =
-    useState<Scope>("ALL");
-
-  const [selectedMonth, setSelectedMonth] =
-    useState("0");
-
-  const [monthPickerOpen, setMonthPickerOpen] =
-    useState(false);
-
-  const [floorPickerOpen, setFloorPickerOpen] =
-    useState(false);
-
-  const [appliedFloors, setAppliedFloors] =
-    useState<string[]>(["ALL"]);
-
-  const [draftFloors, setDraftFloors] =
-    useState<string[]>(["ALL"]);
-
+  const common = useEnergyFilters({ selection: "multi" });
+  const { startMonth, endMonth } = common.value.period;
+  const indices = useMemo(() => getPeriodMonthIndices({ year: 2026, startMonth, endMonth }), [startMonth, endMonth]);
+  const periodLabel = formatPeriodLabel(common.value.period);
   const [floorSort, setFloorSort] = useState<FloorSort>("change");
 
   const [mobileNavOpen, setMobileNavOpen] =
@@ -391,80 +355,34 @@ export default function EnergyDashboard({ dashboardData }: { dashboardData: Ener
   const menuButtonRef =
     useRef<HTMLButtonElement>(null);
 
-  const floorPickerRef =
-    useRef<HTMLDivElement>(null);
+  const monthIndex = indices.length - 1;
+  const scopedFloorEntries = useMemo(() => common.value.floorIds ? floorEntries.filter(([id]) => common.value.floorIds!.includes(id)) : floorEntries, [common.value.floorIds, floorEntries]);
 
-  useEffect(() => {
-    if (!floorPickerOpen) {
-      return;
-    }
-
-    const closeOnOutsideClick = (event: PointerEvent) => {
-      if (
-        floorPickerRef.current &&
-        !floorPickerRef.current.contains(event.target as Node)
-      ) {
-        setDraftFloors(appliedFloors);
-        setFloorPickerOpen(false);
-      }
-    };
-
-    document.addEventListener("pointerdown", closeOnOutsideClick);
-
-    return () => {
-      document.removeEventListener(
-        "pointerdown",
-        closeOnOutsideClick
-      );
-    };
-  }, [floorPickerOpen, appliedFloors]);
-
-  const monthIndex = Number(selectedMonth);
-
-  const filteredFloorEntries = useMemo(() => {
-    if (appliedFloors.includes("ALL")) {
-      return floorEntries;
-    }
-
-    return floorEntries.filter(([, floor]) =>
-      appliedFloors.includes(floor.label)
-    );
-  }, [appliedFloors, floorEntries]);
-
-  const scopedFloorEntries = useMemo(() => {
-    const selectedFloor = scope === "ALL" ? undefined : floors[scope];
-
-    return selectedFloor
-      ? ([[scope, selectedFloor]] as FloorEntry[])
-      : filteredFloorEntries;
-  }, [filteredFloorEntries, floors, scope]);
-
-
-  const baselineValues = monthlyTotals(scopedFloorEntries, "baseline2025");
-  const currentValues = monthlyTotals(scopedFloorEntries, "current2026");
-  const currentUsage = currentValues[monthIndex];
-  const change = percentChange(currentUsage, baselineValues[monthIndex]);
+  const baselineValues = monthlyTotals(scopedFloorEntries, "baseline2025").slice(common.value.period.startMonth, common.value.period.endMonth + 1);
+  const currentValues = monthlyTotals(scopedFloorEntries, "current2026").slice(common.value.period.startMonth, common.value.period.endMonth + 1);
+  const currentUsage = completeSum(currentValues);
+  const change = percentChange(currentUsage, completeSum(baselineValues));
   const singleFloor = scopedFloorEntries.length === 1 ? scopedFloorEntries[0][1] : null;
-  const monthlyDemands = scopedFloorEntries.map(([, floor]) => floor.currentDemand2026?.[monthIndex] ?? null);
+  const monthlyDemands = scopedFloorEntries.flatMap(([, floor]) => indices.map(index => floor.currentDemand2026?.[index] ?? null));
   const peakDemand = monthlyDemands.length && monthlyDemands.every((value): value is number => value !== null)
     ? Math.max(...monthlyDemands) : null;
   const carbonEmissions = currentUsage === null || emissionFactor === null ? null : currentUsage * emissionFactor;
   const scopeLabel = singleFloor?.label ?? (scopedFloorEntries.length === floorEntries.length ? "All Floors" : scopedFloorEntries.length + " Selected Floors");
   const selectedIds = new Set(scopedFloorEntries.map(([id]) => id));
-  const relevantAnomalies = (dashboardData.anomalies ?? []).filter(issue => issue.year === 2026 && issue.monthIndices?.includes(monthIndex) && (issue.floorId === null || selectedIds.has(issue.floorId)));
+  const relevantAnomalies = (dashboardData.anomalies ?? []).filter(issue => issue.year === 2026 && issue.monthIndices?.some(index => indices.includes(index)) && (issue.floorId === null || selectedIds.has(issue.floorId)));
   const chatFloorId = scopedFloorEntries.length === 1 ? scopedFloorEntries[0][0] : null;
   useEffect(() => {
     const publishContext = () => window.dispatchEvent(new CustomEvent("energy-chatbot-context", { detail: { context: {
       page: "dashboard", floorId: chatFloorId, floorName: scopeLabel, selectedFloor: scopeLabel,
-      month: monthNames[monthIndex], year: 2026, hasAnomalies: relevantAnomalies.length > 0,
+      analysisPeriod: periodLabel, month: indices.length === 1 ? monthNames[indices[0]] : null, year: 2026, hasAnomalies: relevantAnomalies.length > 0,
     } } }));
     publishContext();
     window.addEventListener("energy-chatbot-context-request", publishContext);
     return () => window.removeEventListener("energy-chatbot-context-request", publishContext);
-  }, [chatFloorId, scopeLabel, monthIndex, relevantAnomalies.length]);
-  const ranked = floorEntries.map(([id, floor]) => {
-    const baseline = floor.baseline2025?.[monthIndex] ?? null;
-    const current = floor.current2026?.[monthIndex] ?? null;
+  }, [chatFloorId, scopeLabel, periodLabel, indices, relevantAnomalies.length]);
+  const ranked = scopedFloorEntries.map(([id, floor]) => {
+    const baseline = completeSum(indices.map(index => floor.baseline2025?.[index] ?? null));
+    const current = completeSum(indices.map(index => floor.current2026?.[index] ?? null));
     return { id, floor, baseline, current, change: percentChange(current, baseline), employee: perEmployee(current, floor.employees) };
   }).sort((a, b) => {
     const first = floorSort === "change" ? a.change : floorSort === "usage" ? a.current : a.employee;
@@ -477,7 +395,7 @@ export default function EnergyDashboard({ dashboardData }: { dashboardData: Ener
   ];
   const carbonChanges = carbonMonthlyChanges(baselineValues, currentValues, emissionFactor);
   const flash = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(null), 2600); };
-  const selectFloor = (id: string) => { setScope(id); flash(floors[id].label + " selected"); };
+  const selectFloor = (id: string) => { common.onChange({ ...common.value, floorIds: [id] }); flash(floors[id].label + " selected"); };
   const closeNavigation = () => { setMobileNavOpen(false); window.requestAnimationFrame(() => menuButtonRef.current?.focus()); };
 
   return (<div className={styles.appShell}>
@@ -486,33 +404,22 @@ export default function EnergyDashboard({ dashboardData }: { dashboardData: Ener
       <header className={styles.topbar}>
         <button ref={menuButtonRef} className={styles.mobileMenu} onClick={() => setMobileNavOpen(!mobileNavOpen)} aria-label="Toggle navigation" aria-expanded={mobileNavOpen} aria-controls="primary-navigation"><Icon name={mobileNavOpen ? "close" : "menu"} /></button>
         <div className={styles.pageTitle}><h1>Dashboard</h1></div>
-        <div className={styles.headerPickers}>
-          <div className={styles.monthPicker} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setMonthPickerOpen(false); }} onKeyDown={event => { if (event.key === "Escape") setMonthPickerOpen(false); }}>
-            <button type="button" className={styles.monthPickerTrigger} aria-haspopup="dialog" aria-expanded={monthPickerOpen} aria-controls="dashboard-month-picker" aria-label={`Reporting Month: ${monthNames[monthIndex]} 2026`} onClick={() => setMonthPickerOpen(open => !open)}><Icon name="calendar" size={17} /><span>{monthNames[monthIndex]} 2026</span><i aria-hidden="true" /></button>
-            {monthPickerOpen ? <div id="dashboard-month-picker" className={styles.monthPickerPopover} role="dialog" aria-label="Choose a reporting month in 2026"><strong className={styles.monthPickerYear}>Reporting Month · 2026</strong><div className={styles.monthGrid}>{monthNames.map((monthName, index) => <button type="button" key={monthName} className={monthIndex === index ? styles.monthSelected : undefined} aria-pressed={monthIndex === index} onClick={() => { setSelectedMonth(String(index)); setMonthPickerOpen(false); }}>{monthName}</button>)}</div></div> : null}
-          </div>
-          <div ref={floorPickerRef} className={styles.floorPicker} onKeyDown={event => { if (event.key === "Escape") { setDraftFloors(appliedFloors); setFloorPickerOpen(false); } }}>
-            <button type="button" className={styles.floorPickerTrigger} aria-haspopup="dialog" aria-expanded={floorPickerOpen} aria-controls="dashboard-floor-picker" onClick={() => { setDraftFloors(appliedFloors); setFloorPickerOpen(open => !open); }}><Icon name="building" size={17} /><span>{scope !== "ALL" ? floors[scope].label : appliedFloors.includes("ALL") ? "All Floors" : appliedFloors.length === 1 ? appliedFloors[0] : `${appliedFloors.length} Floors`}</span><i aria-hidden="true" /></button>
-            {floorPickerOpen ? <div id="dashboard-floor-picker" className={styles.floorPickerPopover} role="dialog" aria-label="Choose floors"><div className={styles.floorPickerHead}><strong>Select floors</strong></div><div className={styles.floorOptions}>
-              <label className={styles.allFloorsOption}><input type="checkbox" checked={draftFloors.includes("ALL")} onChange={() => setDraftFloors(["ALL"])} /><span>All Floors</span></label>
-              {floorOptions.map(floor => <label key={floor}><input type="checkbox" checked={draftFloors.includes(floor)} onChange={() => setDraftFloors(current => { const selected = current.filter(item => item !== "ALL"); return selected.includes(floor) ? selected.filter(item => item !== floor) : [...selected, floor]; })} /><span>{floor}</span></label>)}
-            </div><div className={styles.floorPickerFooter}><span aria-live="polite">{draftFloors.includes("ALL") ? "All floors selected" : `${draftFloors.length} floors selected`}</span><div><button type="button" className={styles.floorCancel} onClick={() => { setDraftFloors(appliedFloors); setFloorPickerOpen(false); }}>Cancel</button><button type="button" className={styles.floorApply} disabled={!draftFloors.length} onClick={() => { setAppliedFloors(draftFloors); setScope("ALL"); setFloorPickerOpen(false); }}>Apply</button></div></div></div> : null}
-          </div>
-        </div>
       </header>
+      <div className={styles.sharedFilters}><EnergyFilterBar value={common.value} onChange={common.onChange} notice={common.notice} floorSelection="multi" floors={floorEntries.map(([id, floor]) => ({ id, label: floor.label }))} advancedFilters={[{ key: "sort", label: "Floor performance sort", value: floorSort, defaultValue: "change", options: [{ value: "change", label: "Change vs baseline" }, { value: "usage", label: "2026 consumption" }, { value: "employee", label: "Energy per employee" }] }]} onApplyAdvanced={values => setFloorSort(values.sort as FloorSort)} /></div>
+
         <section className={styles.metricsGrid} aria-label="Energy summary">
-          <StatCard icon={<Icon name="bolt" size={24} />} label="2026 Consumption" value={formatEnergy(currentUsage)} comparisonText={monthNames[monthIndex] + " · generated prototype data"} tone="neutral" trend="neutral" />
-          <StatCard icon={<Icon name="trend" size={24} />} label="Change vs 2025 Baseline" value={formatChange(change)} comparisonText="Same reporting month" tone={change === null || change === 0 ? "neutral" : change > 0 ? "negative" : "positive"} trend={change === null || change === 0 ? "neutral" : change > 0 ? "up" : "down"} />
-          <StatCard icon={<Icon name="chart" size={24} />} label={singleFloor ? "Peak Demand" : "Highest Floor Peak Demand"} value={peakDemand === null ? "Unavailable" : `${peakDemand.toLocaleString("en-MY")} kW`} comparisonText={`${monthNames[monthIndex]} 2026 · generated workbook demand`} tone="neutral" trend="neutral" />
+          <StatCard icon={<Icon name="bolt" size={24} />} label="2026 Consumption" value={formatEnergy(currentUsage)} comparisonText={periodLabel + " · generated prototype data"} tone="neutral" trend="neutral" />
+          <StatCard icon={<Icon name="trend" size={24} />} label="Change vs 2025 Baseline" value={formatChange(change)} comparisonText="Same selected period" tone={change === null || change === 0 ? "neutral" : change > 0 ? "negative" : "positive"} trend={change === null || change === 0 ? "neutral" : change > 0 ? "up" : "down"} />
+          <StatCard icon={<Icon name="chart" size={24} />} label={singleFloor ? "Peak Demand" : "Highest Floor Peak Demand"} value={peakDemand === null ? "Unavailable" : `${peakDemand.toLocaleString("en-MY")} kW`} comparisonText={`${periodLabel} · generated workbook demand`} tone="neutral" trend="neutral" />
           <StatCard icon={<Icon name="leaf" size={24} />} label="Carbon Emissions" value={carbonEmissions === null ? "Unavailable" : `${carbonEmissions.toLocaleString("en-MY", { maximumFractionDigits: 1 })} kg CO2e`} comparisonText={emissionFactor === null ? "Emission factor unavailable" : `Estimated using 2025 factor: ${emissionFactor} kg CO2e/kWh`} tone="neutral" trend="neutral" />
         </section>
         <section className={styles.analyticsGrid}>
-          <article className={`${styles.panel} ${styles.consumptionPanel}`}><PanelHead title="Monthly Electricity Consumption (kWh)" subtitle={scopeLabel + " · 2025 baseline vs 2026 generated"} /><LineChart series={electricitySeries} activeMonthIndex={monthIndex} label={scopeLabel + " monthly electricity: 2025 baseline and 2026 generated"} /></article>
-          <article className={`${styles.panel} ${styles.consumptionPanel} ${styles.carbonPanel}`}><PanelHead title="Monthly Carbon Emissions Change vs 2025" /><CarbonChangeChart data={carbonChanges} activeMonthIndex={monthIndex} label={scopeLabel + " monthly carbon emissions percentage change: 2026 generated versus 2025 baseline"} /></article>
+          <article className={`${styles.panel} ${styles.consumptionPanel}`}><PanelHead title="Monthly Electricity Consumption (kWh)" subtitle={scopeLabel + " · 2025 baseline vs 2026 generated"} /><ElectricityChart monthLabels={indices.map(index => months[index])} series={electricitySeries} activeMonthIndex={monthIndex} label={scopeLabel + " monthly electricity: 2025 baseline and 2026 generated"} /></article>
+          <article className={`${styles.panel} ${styles.consumptionPanel} ${styles.carbonPanel}`}><PanelHead title="Monthly Carbon Emissions Change vs 2025" />{USE_CHARTJS_DASHBOARD ? <CarbonChangeBarChart key={periodLabel} monthLabels={indices.map(index => months[index])} data={carbonChanges} activeMonthIndex={monthIndex} axis={percentageAxis(carbonChanges.map(month => month.change))} label={scopeLabel + " monthly carbon emissions percentage change: 2026 generated versus 2025 baseline"} /> : <CarbonChangeChart monthLabels={indices.map(index => months[index])} data={carbonChanges} activeMonthIndex={monthIndex} label={scopeLabel + " monthly carbon emissions percentage change: 2026 generated versus 2025 baseline"} />}</article>
         </section>
         <section className={styles.dynamicSection}>
           <article className={`${styles.panel} ${styles.floorComparisonPanel}`}>
-            <PanelHead title="Floor Performance" subtitle={monthNames[monthIndex] + " 2026 · F01–F16 compared with the same month in 2025"} action={<label className={styles.sortControl}><span>Sort by</span><select value={floorSort} onChange={event => setFloorSort(event.target.value as FloorSort)}><option value="change">Change vs baseline</option><option value="usage">2026 consumption</option><option value="employee">Energy per employee</option></select></label>} />
+            <PanelHead title="Floor Performance" subtitle={periodLabel + " · compared with the same period in 2025"} />
             <div className={styles.tableScroll}><table className={styles.comparisonTable}><thead><tr><th>Floor</th><th>Usage type</th><th>2025 baseline (kWh)</th><th>2026 generated (kWh)</th><th>Change vs baseline</th><th>Employees (2025)</th><th>kWh / employee</th></tr></thead><tbody>{ranked.map(row => <tr key={row.id} onClick={() => selectFloor(row.id)}><td><button type="button" onClick={event => { event.stopPropagation(); selectFloor(row.id); }}>{row.floor.short}</button></td><td>{row.floor.usageType}</td><td>{formatEnergy(row.baseline)}</td><td>{formatEnergy(row.current)}</td><td><span className={row.change === null || row.change === 0 ? undefined : row.change > 0 ? styles.statusWarning : styles.statusGood}>{formatChange(row.change)}</span></td><td>{row.floor.employees ?? "Unavailable"}</td><td>{row.employee === null ? "Unavailable" : row.employee.toFixed(1)}</td></tr>)}</tbody></table></div>
           </article>
         </section>

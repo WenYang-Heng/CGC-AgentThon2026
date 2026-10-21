@@ -9,7 +9,7 @@ vm.runInContext(ts.transpileModule(fs.readFileSync('lib/building/floor-geometry.
 }).outputText, context);
 const build = context.exports.buildFloorGeometry;
 function loadModule(file) {
-  const moduleContext = vm.createContext({ exports: {} });
+  const moduleContext = vm.createContext({ exports: {}, require });
   vm.runInContext(ts.transpileModule(fs.readFileSync(file, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText, moduleContext);
@@ -61,6 +61,77 @@ test('elevations build 16 ordered floors from the base and preserve side setback
   assert.ok(model.floors[15].size[2] < model.floors[9].size[2]);
 });
 
+test('facade preserves flat outer walls at F15 depth and widens the central face on F11 through F14', () => {
+  const { facadeProfile } = loadModule('lib/building/facade-profile.ts');
+  const { buildElevationModel } = loadModule('lib/building/elevation-geometry.ts');
+  const svg = name => fs.readFileSync(`public/building/elevations/${name}.svg`, 'utf8');
+  const { floors } = buildElevationModel(svg('front'), svg('back'), svg('left'));
+  const reference = floors.find(floor => floor.id === 'F15');
+  let previousWidth = 0;
+  for (const floor of floors.filter(item => Number(item.id.slice(1)) >= 2 && Number(item.id.slice(1)) <= 14)) {
+    const points = facadeProfile(floor, reference);
+    assert.ok(points[2][0] > points[3][0], 'outer flat wall has positive width');
+    assert.equal(points[2][1], points[3][1]);
+    assert.ok(Math.abs(points[2][1] + floor.position[2] - reference.position[2] - reference.size[2] / 2) < 1e-9);
+    assert.ok(points[4][0] < points[3][0], 'sloped shoulder has positive width');
+    assert.ok(points[4][1] > points[3][1], 'central face projects beyond outer wall');
+    assert.equal(points[4][0], -points[5][0]);
+    const width = points[4][0] - points[5][0];
+    if (Number(floor.id.slice(1)) >= 12) assert.ok(width > previousWidth);
+    else if (previousWidth) assert.equal(width, previousWidth);
+    previousWidth = width;
+    const level = Number(floor.id.slice(1));
+    if (level >= 11 && level <= 13) {
+      const next = floors.find(item => Number(item.id.slice(1)) === level + 1);
+      const top = facadeProfile(floor, reference, 'top');
+      const bottom = facadeProfile(next, reference);
+      assert.ok(top[4][0] < bottom[4][0], 'distinct widening ledge separates consecutive floors');
+      assert.ok(top[4][0] > points[4][0], 'riser inclines slightly sideways');
+      assert.ok(top[4][1] < points[4][1], 'riser inclines slightly backwards');
+      assert.ok(top[4][1] + floor.position[2] > bottom[4][1] + next.position[2], 'side view retains the setback ledge');
+    }
+    if (level < 11) assert.equal(JSON.stringify(facadeProfile(floor, reference, 'top')), JSON.stringify(points), 'lower floors have constant width throughout their height');
+  }
+  const slopeReference = floors.find(floor => floor.id === 'F11');
+  const anchor = facadeProfile(slopeReference, reference, 'bottom', slopeReference);
+  for (const floor of floors.filter(item => Number(item.id.slice(1)) >= 2 && Number(item.id.slice(1)) < 11)) {
+    for (const edge of ['bottom', 'top']) {
+      const profile = facadeProfile(floor, reference, edge, slopeReference);
+      assert.ok(Math.abs(profile[4][0] - anchor[4][0]) < 1e-9, 'lower central face matches F11 width');
+    }
+  }
+  const slope = (anchor[4][1] - anchor[3][1]) / (anchor[3][0] - anchor[4][0]);
+  for (const floor of floors.filter(item => /^F1[1-4]$/.test(item.id))) {
+    for (const edge of ['bottom', 'top']) {
+      const profile = facadeProfile(floor, reference, edge, slopeReference);
+      const actual = (profile[4][1] - profile[3][1]) / (profile[3][0] - profile[4][0]);
+      assert.ok(Math.abs(actual - slope) < 1e-9, 'upper side walls share F11 slope');
+    }
+  }
+});
+
+test('rear cut stays aligned across all floors and roof while preserving the front', () => {
+  const { cutRearCorner } = loadModule('lib/building/rear-footprint.ts');
+  const { buildElevationModel } = loadModule('lib/building/elevation-geometry.ts');
+  const svg = name => fs.readFileSync(`public/building/elevations/${name}.svg`, 'utf8');
+  const model = buildElevationModel(svg('front'), svg('back'), svg('left'));
+  const reference = model.floors.find(floor => floor.id === 'F15');
+  const rear = reference.position[2] - reference.size[2] / 2;
+  const left = reference.position[0] - reference.size[0] / 2;
+  for (const part of [...model.floors, ...model.roof]) {
+    const [w, , d] = part.size;
+    const result = cutRearCorner([[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]], part, reference);
+    assert.ok(result.length >= 4);
+    assert.ok(result.some(([,z]) => Math.abs(z - d / 2) < 1e-9), 'front remains intact');
+    for (const [x,z] of result) {
+      const worldX = x + part.position[0], worldZ = z + part.position[2];
+      const start = left + reference.size[0] * 0.31;
+      if (worldX > start + 1e-8) assert.ok(worldZ >= rear + reference.size[2] * 0.15 - 1e-8, 'rear strip is removed');
+      if (worldX > left + reference.size[0] * 0.915 + 1e-8) assert.ok(worldZ >= rear + reference.size[2] * 0.55 - 1e-8, 'outer corner is removed');
+    }
+  }
+});
+
 test('heatmap annual totals, normalization, missing readings and clean color limits agree', () => {
   const { buildEnergyHeatmap } = loadModule('lib/building/energy-heatmap.ts');
   const floors = { F01: { current2026: Array(12).fill(100), baseline2025: Array(12).fill(80), area: 50 },
@@ -73,6 +144,10 @@ test('heatmap annual totals, normalization, missing readings and clean color lim
   assert.ok(heat.scaleMaximum >= heat.maximum);
   assert.equal(heat.ticks[0], heat.scaleMaximum);
   assert.equal(heat.ticks.at(-1), 0);
+  const quarter = buildEnergyHeatmap(floors, ['F01'], { year: 2026, startMonth: 6, endMonth: 8 }, 'usage');
+  assert.equal(quarter.readings.F01.usage, 300);
+  assert.equal(quarter.readings.F01.baseline, 240);
+  assert.equal(quarter.readings.F01.change, 25);
   heat = buildEnergyHeatmap(floors, ['F01', 'F02'], 'year', 'intensity');
   assert.equal(heat.readings.F01.value, 24);
   assert.equal(heat.readings.F02.value, null);

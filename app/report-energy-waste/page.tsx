@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
+import EnergyFilterBar from "@/components/EnergyFilters/EnergyFilterBar";
+import { useEnergyFilters } from "@/lib/use-energy-filters";
+import { MONTHS, isMonthInPeriod } from "@/lib/energy-filters";
 import Sidebar from "@/components/Sidebar/Sidebar";
 import ReportFormModal from "@/components/ReportFormModal/ReportFormModal";
 import ReportTable, { EnergyWasteReport } from "@/components/ReportTable/ReportTable";
@@ -10,12 +13,12 @@ import styles from "./report-energy-waste.module.css";
 type Tab = "active" | "review" | "resolved";
 
 const initialReports: EnergyWasteReport[] = [
-  { id: "EWR-1048", issue: "Air Conditioning", location: "Floor 8 · Meeting Room", dateReported: "29 Sep 2026", status: "Under Review" },
-  { id: "EWR-1047", issue: "Lights", location: "Floor 12 · Open Office", dateReported: "28 Sep 2026", status: "Active" },
-  { id: "EWR-1046", issue: "Equipment", location: "Floor 4 · Pantry", dateReported: "27 Sep 2026", status: "Under Review" },
-  { id: "EWR-1045", issue: "Lights", location: "Floor 15 · Training Room", dateReported: "25 Sep 2026", status: "Resolved" },
-  { id: "EWR-1044", issue: "Equipment", location: "Floor 2 · Server Room", dateReported: "24 Sep 2026", status: "Active" },
-  { id: "EWR-1043", issue: "Air Conditioning", location: "Floor 10 · Reception", dateReported: "22 Sep 2026", status: "Resolved" },
+  { id: "EWR-1048", issue: "Air Conditioning", floorId: "F08", location: "Floor 8 · Meeting Room", dateReported: "29 Sep 2026", status: "Under Review" },
+  { id: "EWR-1047", issue: "Lights", floorId: "F12", location: "Floor 12 · Open Office", dateReported: "28 Sep 2026", status: "Active" },
+  { id: "EWR-1046", issue: "Equipment", floorId: "F04", location: "Floor 4 · Pantry", dateReported: "27 Sep 2026", status: "Under Review" },
+  { id: "EWR-1045", issue: "Lights", floorId: "F15", location: "Floor 15 · Training Room", dateReported: "25 Sep 2026", status: "Resolved" },
+  { id: "EWR-1044", issue: "Equipment", floorId: "F02", location: "Floor 2 · Server Room", dateReported: "24 Sep 2026", status: "Active" },
+  { id: "EWR-1043", issue: "Air Conditioning", floorId: "F10", location: "Floor 10 · Reception", dateReported: "22 Sep 2026", status: "Resolved" },
 ];
 
 const sidebarItems = [
@@ -25,6 +28,8 @@ const sidebarItems = [
 ];
 
 export default function ReportEnergyWastePage() {
+  const common = useEnergyFilters({ years: [2025, 2026], selection: "multi" });
+  const [issueFilter, setIssueFilter] = useState("");
   const [tab, setTab] = useState<Tab>("active");
   const [reports, setReports] = useState(initialReports);
   const [modalOpen, setModalOpen] = useState(false);
@@ -34,14 +39,16 @@ export default function ReportEnergyWastePage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const visibleReports = useMemo(() => reports.filter((report) => {
-    if (tab === "active") return report.status !== "Resolved";
-    if (tab === "review") return report.status === "Under Review";
-    return report.status === "Resolved";
-  }), [reports, tab]);
+  const scopedReports = useMemo(() => reports.filter(report => {
+    const [, month, year] = report.dateReported.split(" ");
+    return (!common.value.floorIds || common.value.floorIds.includes(report.floorId))
+      && isMonthInPeriod(MONTHS.indexOf(month), common.value.period, Number(year))
+      && (!issueFilter || report.issue === issueFilter);
+  }), [reports, common.value.floorIds, common.value.period, issueFilter]);
+  const visibleReports = scopedReports.filter(report => tab === "active" ? report.status !== "Resolved" : tab === "review" ? report.status === "Under Review" : report.status === "Resolved");
 
   const closeModal = useCallback(() => { if (!submissionInProgress.current) setModalOpen(false); }, []);
-  const counts = { active: reports.filter((report) => report.status !== "Resolved").length, review: reports.filter((report) => report.status === "Under Review").length, resolved: reports.filter((report) => report.status === "Resolved").length };
+  const counts = { active: scopedReports.filter((report) => report.status !== "Resolved").length, review: scopedReports.filter((report) => report.status === "Under Review").length, resolved: scopedReports.filter((report) => report.status === "Resolved").length };
 
   return (
     <div className={styles.shell}>
@@ -53,6 +60,7 @@ export default function ReportEnergyWastePage() {
           <button className={styles.createButton} type="button" disabled={submitting} onClick={() => { setSubmitError(null); setSuccessMessage(null); setModalOpen(true); }}><Icon name="plus" /><span>Create report</span></button>
         </header>
 
+        <div className={styles.sharedFilters}><EnergyFilterBar value={common.value} onChange={common.onChange} availableYears={[2025, 2026]} floorSelection="multi" advancedFilters={[{ key: "issue", label: "Issue type", value: issueFilter, options: [{ value: "", label: "All issue types" }, ...["Lights", "Air Conditioning", "Equipment"].map(value => ({ value, label: value }))] }]} onApplyAdvanced={values => setIssueFilter(values.issue)} /></div>
         {successMessage && <p className={styles.successMessage} role="status">{successMessage}</p>}
 
         <section className={styles.reportPanel} aria-labelledby="reports-heading">
@@ -85,7 +93,7 @@ export default function ReportEnergyWastePage() {
           const result = outcome.result;
           if (!result.success || !result.reportId) throw new Error(result.message || "The report could not be created.");
           const dateReported = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date());
-          setReports((current) => [{ id: result.reportId!, issue: report.issue, location: `${report.floorName} · ${report.roomType}`, dateReported, status: result.status ?? "Active" }, ...current]);
+          setReports((current) => [{ id: result.reportId!, issue: report.issue, floorId: report.floorId, location: `${report.floorName} · ${report.roomType}`, dateReported, status: result.status ?? "Active" }, ...current]);
           setTab("active");
           setSuccessMessage(`Report ${result.reportId} created successfully.`);
           setModalOpen(false);

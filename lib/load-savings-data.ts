@@ -76,9 +76,10 @@ export function loadSavingsData(): SavingsPageData {
       severity: text(row.Severity) ?? "Unspecified", source: "2026 generated prototype", ...relateSignal(description, opportunities) };
   });
   for (const anomaly of anomalyMockData.anomalies) {
-    const description = `${anomaly.description} ${anomaly.possibleCauses.join("; ")}`;
-    operationalSignals.push({ id: anomaly.id, floorId: `F${String(Number(anomaly.floor.replace("Floor ", ""))).padStart(2, "0")}`, period: `${anomaly.startTime}–${anomaly.endTime}; date unavailable`, description,
-      severity: anomaly.severity, source: "Undated prototype example", ...relateSignal(description, opportunities) });
+    if (operationalSignals.some(signal => signal.id === anomaly.id)) continue;
+    const description = anomaly.description + ' ' + anomaly.possibleCauses.join('; ');
+    operationalSignals.push({ id: anomaly.id, floorId: anomaly.floorId, period: anomaly.month, description,
+      severity: anomaly.severity, source: "2026 generated prototype", ...relateSignal(description, opportunities) });
   }
   return { costFloors, opportunities, summary: summarizeOpportunities(opportunities, baselineAnnualConsumptionKwh), baselineAnnualConsumptionKwh,
     operationalSignals, excludedScenarioCount: recommendations.filter(row => text(row.Recommendation_ID) && !(row.Source_Type === "CGC Energy Audit" && row.Saving_Period === "Annual")).length };

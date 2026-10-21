@@ -7,8 +7,8 @@ import type { FloorCostPerformance, SavingsPageData } from "@/types/savings";
 import styles from "./SavingsPage.module.css";
 import SavingsDropdown from "./SavingsDropdown";
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-export const COST_PERIODS = [{ label: "Full Year", start: 0, end: 11 }, { label: "Q1", start: 0, end: 2 }, { label: "Q2", start: 3, end: 5 }, { label: "Q3", start: 6, end: 8 }, { label: "Q4", start: 9, end: 11 }];
+import { MONTHS, formatPeriodLabel } from "@/lib/energy-filters";
+import type { EnergyPeriod } from "@/types/energy-filters";
 const moneyIcon = <span aria-hidden="true">RM</span>;
 type CostSort = "costRm" | "costPerEmployee" | "costPerM2" | "effectiveRateRmPerKwh";
 
@@ -77,16 +77,18 @@ function MonthlyCostChart({ rows }: { rows: { month: string; baseline: number | 
   </>;
 }
 
-export default function CostPerformanceTab({ data, year, periodIndex }: { data: SavingsPageData; year: 2025 | 2026; periodIndex: number }) {
+export default function CostPerformanceTab({ data, period: selectedPeriod, floorIds }: { data: SavingsPageData; period: EnergyPeriod; floorIds: string[] | null }) {
+  const year = selectedPeriod.year as 2025 | 2026;
+  const period = { start: selectedPeriod.startMonth, end: selectedPeriod.endMonth, label: formatPeriodLabel(selectedPeriod) };
+  const selectedFloors = useMemo(() => floorIds ? data.costFloors.filter(floor => floorIds.includes(floor.floorId)) : data.costFloors, [data.costFloors, floorIds]);
   const [sort, setSort] = useState<CostSort>("costRm");
-  const period = COST_PERIODS[periodIndex];
-  const floors = useMemo(() => calculateFloorCosts(data.costFloors, year, period.start, period.end), [data, year, period]);
+  const floors = useMemo(() => calculateFloorCosts(selectedFloors, year, period.start, period.end), [selectedFloors, year, period.start, period.end]);
   const summary = summarizeCosts(floors);
   const ranked = [...floors].sort((a, b) => (b.costRm ?? -1) - (a.costRm ?? -1));
   const tableRows = [...floors].sort((a, b) => (b[sort] ?? -1) - (a[sort] ?? -1));
   const maxCost = Math.max(1, ...floors.map(floor => floor.costRm ?? 0));
   const monthly = MONTHS.map((month, index) => ({ month,
-    baseline: completeSum(data.costFloors.map(floor => floor.baseline[index].costRm)),
+    baseline: completeSum(selectedFloors.map(floor => floor.baseline[index].costRm)),
     generated: completeSum(data.costFloors.map(floor => floor.generated[index].costRm)),
   })).slice(period.start, period.end + 1);
   const context = `${year} ${year === 2026 ? "Generated" : "Baseline"} · ${period.label}`;
@@ -97,7 +99,7 @@ export default function CostPerformanceTab({ data, year, periodIndex }: { data: 
     { label: "Cost per Employee", value: normalized(summary.costPerEmployee, "employee"), text: "Occupancy-normalized · annual-average headcount" },
     { label: "Cost per m²", value: normalized(summary.costPerM2, "m²"), text: "Area-normalized · selected-period cost" },
   ];
-  const share = (floor: FloorCostPerformance) => { const ratio = safeRatio(floor.costRm, summary.totalCostRm); return ratio === null ? "Share unavailable" : `${(ratio * 100).toFixed(1)}% of building cost`; };
+  const share = (floor: FloorCostPerformance) => { const ratio = safeRatio(floor.costRm, summary.totalCostRm); return ratio === null ? "Share unavailable" : `${(ratio * 100).toFixed(1)}% of selected cost`; };
   return <>
     <section className={styles.kpis} aria-label="Cost performance metrics">{metrics.map(item => <StatCard key={item.label} icon={moneyIcon} label={item.label} value={item.value} comparisonText={item.text} tone="neutral" trend="neutral" />)}</section>
     <div className={styles.costChartsGrid}>

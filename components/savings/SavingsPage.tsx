@@ -3,10 +3,11 @@
 import { useRef, useState } from "react";
 import Sidebar from "@/components/Sidebar/Sidebar";
 import type { SavingsFilters, SavingsPageData } from "@/types/savings";
-import CostPerformanceTab, { COST_PERIODS } from "./CostPerformanceTab";
+import CostPerformanceTab from "./CostPerformanceTab";
 import SavingsOpportunitiesTab from "./SavingsOpportunitiesTab";
 import styles from "./SavingsPage.module.css";
-import SavingsDropdown from "./SavingsDropdown";
+import EnergyFilterBar from "@/components/EnergyFilters/EnergyFilterBar";
+import { useEnergyFilters } from "@/lib/use-energy-filters";
 
 const tabs = [{ id: "cost", label: "Cost Performance" }, { id: "opportunities", label: "Savings Opportunities" }] as const;
 type Tab = typeof tabs[number]["id"];
@@ -16,8 +17,7 @@ const navItems = [{ label: "Energy Explorer", href: "/", icon }, { label: "Repor
 export default function SavingsPage({ data }: { data: SavingsPageData | null }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("cost");
-  const [year, setYear] = useState<2025 | 2026>(2026);
-  const [periodIndex, setPeriodIndex] = useState(0);
+  const common = useEnergyFilters({ years: [2025, 2026], selection: "multi" });
   const [filters, setFilters] = useState<SavingsFilters>({ category: "", confidence: "", status: "" });
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const menuRef = useRef<HTMLButtonElement>(null);
@@ -27,20 +27,15 @@ export default function SavingsPage({ data }: { data: SavingsPageData | null }) 
       <header className={styles.header}>
         <button ref={menuRef} type="button" className={styles.mobileMenu} aria-label="Open navigation" aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)}>☰</button>
         <div><h1>Savings &amp; Cost</h1></div>
-        {data && activeTab === "cost" && <div className={styles.headerFilters}>
-          <SavingsDropdown label="Cost year" value={String(year)} onChange={value => setYear(Number(value) as 2025 | 2026)} options={[{ value: "2025", label: "2025 Baseline" }, { value: "2026", label: "2026 Generated" }]} />
-          <SavingsDropdown label="Cost period" value={String(periodIndex)} onChange={value => setPeriodIndex(Number(value))} options={COST_PERIODS.map((period, index) => ({ value: String(index), label: period.label }))} />
-        </div>}
-        {data && activeTab === "opportunities" && <div className={styles.headerFilters}>
-          {([{ key: "category", field: "category", label: "Category", all: "All categories" }, { key: "confidence", field: "confidence", label: "Confidence", all: "All confidence" }, { key: "status", field: "approvalStatus", label: "Status", all: "All status" }] as const).map(({ key, field, label, all }) => <SavingsDropdown key={key} label={label} value={filters[key]} onChange={value => setFilters(current => ({ ...current, [key]: value }))} options={[{ value: "", label: all }, ...[...new Set(data.opportunities.map(item => item[field]).filter((value): value is string => value !== null))].sort().map(value => ({ value, label: value }))]} />)}
-        </div>}
       </header>
+      {data && <div className={styles.sharedFilters}><EnergyFilterBar value={common.value} onChange={common.onChange} notice={activeTab === "cost" ? common.notice : "Audit opportunities are annual and building-wide. Period and floor selections apply to Cost Performance."} availableYears={[2025, 2026]} floorSelection="multi" showPeriod={activeTab === "cost"} showFloor={activeTab === "cost"} advancedFilters={activeTab === "opportunities" ? ([{ key: "category", field: "category", label: "Category", all: "All categories" }, { key: "confidence", field: "confidence", label: "Confidence", all: "All confidence" }, { key: "status", field: "approvalStatus", label: "Status", all: "All statuses" }] as const).map(({ key, field, label, all }) => ({ key, label, value: filters[key], options: [{ value: "", label: all }, ...[...new Set(data.opportunities.map(item => item[field]).filter((value): value is string => value !== null))].sort().map(value => ({ value, label: value }))] })) : []} onApplyAdvanced={values => setFilters({ category: values.category, confidence: values.confidence, status: values.status })} /></div>}
+
       {!data ? <section className={styles.panel} role="alert"><h2>Savings data is temporarily unavailable</h2><p>Please try again. The source workbooks could not be loaded.</p><a href="/savings">Reload savings data</a></section> : <>
         <div className={styles.tabs} role="tablist" aria-label="Savings & Cost sections">{tabs.map((tab, index) => <button key={tab.id} id={`savings-tab-${tab.id}`} ref={node => { tabRefs.current[index] = node; }} type="button" role="tab" aria-selected={activeTab === tab.id} aria-controls={`savings-panel-${tab.id}`} tabIndex={activeTab === tab.id ? 0 : -1} onClick={() => setActiveTab(tab.id)} onKeyDown={event => {
           const next = event.key === "ArrowRight" ? (index + 1) % tabs.length : event.key === "ArrowLeft" ? (index + tabs.length - 1) % tabs.length : event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : null;
           if (next !== null) { event.preventDefault(); setActiveTab(tabs[next].id); tabRefs.current[next]?.focus(); }
         }}>{tab.label}</button>)}</div>
-        <div role="tabpanel" id="savings-panel-cost" aria-labelledby="savings-tab-cost" hidden={activeTab !== "cost"}><CostPerformanceTab data={data} year={year} periodIndex={periodIndex} /></div>
+        <div role="tabpanel" id="savings-panel-cost" aria-labelledby="savings-tab-cost" hidden={activeTab !== "cost"}><CostPerformanceTab data={data} period={common.value.period} floorIds={common.value.floorIds} /></div>
         <div role="tabpanel" id="savings-panel-opportunities" aria-labelledby="savings-tab-opportunities" hidden={activeTab !== "opportunities"}><SavingsOpportunitiesTab data={data} filters={filters} /></div>
       </>}
     </main>

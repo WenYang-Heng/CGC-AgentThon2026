@@ -6,6 +6,7 @@ export type EnergyWasteReport = {
   id: string;
   issue: "Lights" | "Air Conditioning" | "Equipment";
   location: string;
+  floorId: string;
   dateReported: string;
   status: ReportStatus;
 };
@@ -24,7 +25,7 @@ export default function ReportTable({ reports }: { reports: EnergyWasteReport[] 
           <path d="M8 4h8M9 3h6v3H9zM7 5H5v16h14V5h-2M8 11h8M8 15h5" />
         </svg>
         <strong>No reports in this view</strong>
-        <p>Reports matching this status will appear here.</p>
+        <p>Reports matching the selected filters will appear here.</p>
       </div>
     );
   }

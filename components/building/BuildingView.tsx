@@ -7,7 +7,8 @@ import { FLOOR_CONFIGS } from "@/lib/building/floor-config";
 import type { BuildingLevel } from "@/lib/building/elevation-geometry";
 import type { EnergyFloorData } from "@/app/dashboard-data";
 import { buildEnergyHeatmap, type HeatmapMetric } from "@/lib/building/energy-heatmap";
-import SavingsDropdown from "@/components/savings/SavingsDropdown";
+import EnergyFilterBar from "@/components/EnergyFilters/EnergyFilterBar";
+import { useEnergyFilters } from "@/lib/use-energy-filters";
 import styles from "./BuildingView.module.css";
 
 const FloorScene = dynamic(() => import("./FloorScene"), { ssr: false, loading: () => <p className={styles.state} role="status">Loading floor model…</p> });
@@ -27,12 +28,13 @@ const navItems = [
 
 export default function BuildingView({ building, energyFloors }: { building: { floors: BuildingLevel[]; roof: BuildingLevel[] }; energyFloors: Record<string, EnergyFloorData> }) {
   const [view] = useState<"building" | "floor">("building");
-  const [heatMonth, setHeatMonth] = useState<number | "year">("year");
+  const common = useEnergyFilters({ selection: "single" });
   const [heatMetric, setHeatMetric] = useState<HeatmapMetric>("usage");
-  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const heatmap = buildEnergyHeatmap(energyFloors, building.floors.map(item => item.id), heatMonth, heatMetric);
+  const [heatmapEnabled, setHeatmapEnabled] = useState(false);
+  const heatmap = buildEnergyHeatmap(energyFloors, building.floors.map(item => item.id), common.value.period, heatMetric);
   const heatUnit = heatMetric === "usage" ? "kWh" : "kWh/m²";
-  const [selectedFloor, setSelectedFloor] = useState<string | null>(null);
+  const selectedFloor = common.value.floorIds?.[0] ?? null;
+  const setSelectedFloor = (id: string | null) => common.onChange({ ...common.value, floorIds: id ? [id] : null });
   const [floorId, setFloorId] = useState(FLOOR_CONFIGS[0].id);
   const [mode, setMode] = useState<"3d" | "top">("3d");
   const [lowWalls, setLowWalls] = useState(false);
@@ -49,16 +51,16 @@ export default function BuildingView({ building, energyFloors }: { building: { f
       <header className={styles.header}><button ref={menuRef} type="button" className={styles.mobileMenu} aria-label="Open navigation" aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)}>☰</button><div><h1>Building View</h1><p>Explore Menara CGC floor geometry in an interactive 3D view.</p></div></header>
       {view === "building" && <section className={styles.panel} aria-label="Building exterior viewer">
         <div className={`${styles.viewer} ${styles.exteriorViewer}`}>
-        <div className={styles.heatFilters} role="group" aria-label="Building filters">
-          <SavingsDropdown label="Energy period" value={String(heatMonth)} onChange={value => setHeatMonth(value === "year" ? "year" : Number(value))} options={[{ value: "year", label: "Entire Year 2026" }, ...months.map((name, index) => ({ value: String(index), label: `${name} 2026` }))]} />
-          <SavingsDropdown label="Heatmap metric" value={heatMetric} onChange={value => setHeatMetric(value as HeatmapMetric)} options={[{ value: "usage", label: "Electricity usage (kWh)" }, { value: "intensity", label: "Energy intensity (kWh/m²)" }]} />
-          <SavingsDropdown label="Building floor" value={selectedFloor ?? ""} onChange={value => setSelectedFloor(value || null)} options={[{ value: "", label: "All Floors" }, ...building.floors.map(item => ({ value: item.id, label: item.label }))]} />
-          <div className={styles.controls}><button type="button" onClick={() => { setSelectedFloor(null); setReset(value => value + 1); }}>Reset building</button></div></div>
-        <div className={styles.verticalLegend} aria-label="Energy heatmap legend">
+        <div className={styles.heatmapSwitchPosition}><span id="building-heatmap-label">Heatmap</span><button className={styles.heatmapSwitch} type="button" role="switch" aria-checked={heatmapEnabled} aria-labelledby="building-heatmap-label" onClick={() => setHeatmapEnabled(value => !value)}><span className={styles.heatmapSwitchThumb} aria-hidden="true" /></button></div>
+        <div className={styles.heatFilters}>
+          <EnergyFilterBar value={common.value} onChange={common.onChange} notice={common.notice} floors={building.floors.map(item => ({ id: item.id, label: item.label }))} advancedFilters={[{ key: "metric", label: "Heatmap metric", value: heatMetric, defaultValue: "usage", options: [{ value: "usage", label: "Electricity usage (kWh)" }, { value: "intensity", label: "Energy intensity (kWh/m2)" }] }]} onApplyAdvanced={values => setHeatMetric(values.metric as HeatmapMetric)} />
+          <div className={styles.controls}><button type="button" onClick={() => { setSelectedFloor(null); setReset(value => value + 1); }}>Reset building</button></div>
+        </div>
+        {heatmapEnabled && <div className={styles.verticalLegend} aria-label="Energy heatmap legend">
           <strong>{heatUnit}</strong>
           <div className={styles.verticalScale}><div className={styles.verticalGradient} /><div className={styles.scaleTicks}>{heatmap.ticks.length ? heatmap.ticks.map(tick => <span key={tick}>{tick.toLocaleString("en-MY", { maximumFractionDigits: 4 })}</span>) : <span>N/A</span>}</div></div>
-        </div>
-        <ViewerBoundary key={`exterior-${attempt}`} onRetry={() => setAttempt(value => value + 1)}><BuildingScene building={building} selectedFloor={selectedFloor} onSelectFloor={setSelectedFloor} reset={reset} heatmap={heatmap.readings} metric={heatMetric} /></ViewerBoundary></div>
+        </div>}
+        <ViewerBoundary key={`exterior-${attempt}`} onRetry={() => setAttempt(value => value + 1)}><BuildingScene building={building} selectedFloor={selectedFloor} onSelectFloor={setSelectedFloor} reset={reset} heatmap={heatmap.readings} metric={heatMetric} heatmapEnabled={heatmapEnabled} /></ViewerBoundary></div>
       </section>}
       {view === "floor" && <section className={styles.panel} aria-label="Floor architecture viewer">
         <div className={styles.toolbar}><label>Floor<select aria-label="Floor" value={floor.id} onChange={event => { setFloorId(event.target.value); setReset(value => value + 1); }}>{FLOOR_CONFIGS.map(item => <option key={item.id} value={item.id}>{item.id}</option>)}</select></label><div className={styles.controls} role="group" aria-label="View controls">

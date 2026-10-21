@@ -1,14 +1,18 @@
 export type AnomalySeverity = "low" | "medium" | "high";
 
-// Prototype anomaly cards use time-of-day examples, not monthly metered records.
+// Monthly prototype scenarios; no hourly or interval readings are available.
 export interface EnergyAnomaly {
   id: string;
-  floor: string;
-  startTime: string;
-  endTime: string;
+  floorId: string;
+  floorName: string;
+  month: string;
   severity: AnomalySeverity;
-  baselineDeviation: number;
+  actualKWh: number;
+  expectedKWh: number | null;
+  deviationPercent: number | null;
+  type: string;
   description: string;
   possibleCauses: string[];
   recommendedAction: string;
+  status?: "Unresolved" | "Resolved";
 }

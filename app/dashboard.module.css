@@ -41,47 +41,8 @@
 .workspace{width:100%;max-width:1440px;margin-right:auto;margin-left:auto}
 
 .topbar{display:flex;min-height:48px;align-items:center;justify-content:space-between;gap:24px;margin-bottom:14px}
-.headerPickers{display:flex;align-items:center;gap:8px;margin-left:auto}
 .agentLoadState{display:flex;min-height:38px;align-items:center;gap:9px;margin-bottom:12px;padding:8px 11px;color:#50637a;background:#f6f9fc;border:1px solid #dfe7f0;border-radius:9px;font-size:10px}.agentLoadState>span{width:8px;height:8px;flex:0 0 auto;background:#8ca0b5;border-radius:50%}.agentLoadState p{margin:0}.agentLoadState button{margin-left:auto;padding:6px 9px;color:#075ebc;background:#eff7ff;border:1px solid #cfe2f7;border-radius:7px;font:inherit;font-size:9px;font-weight:700;cursor:pointer}.agentLoadState.loading>span{background:var(--blue);animation:agentPulse 1s ease-in-out infinite}.agentLoadState.loaded{color:#067c61;background:#eefaf6;border-color:#ccebe2}.agentLoadState.loaded>span{background:#009c6e}.agentLoadState.authorization,.agentLoadState.error{color:#8f4e10;background:#fff8ee;border-color:#f0d7b4}.agentLoadState.authorization>span,.agentLoadState.error>span{background:#df8d18}@keyframes agentPulse{50%{opacity:.35;transform:scale(.75)}}
-.monthPicker,.floorPicker{position:relative}
-.monthPickerTrigger{display:flex;width:148px;height:40px;align-items:center;gap:9px;padding:0 13px;color:#253246;background:#fff;border:1px solid #d7e1eb;border-radius:8px;box-shadow:0 4px 12px rgba(32,66,103,.05);font:inherit;font-size:12px;font-weight:650;cursor:pointer}
-.monthPickerTrigger svg{flex:0 0 auto;color:#607086}
-.monthPickerTrigger span{flex:1;text-align:left}
-.monthPickerTrigger i{width:7px;height:7px;border-right:1.5px solid #6b7280;border-bottom:1.5px solid #6b7280;transform:translateY(-2px) rotate(45deg);transition:transform 160ms ease}
-.monthPickerTrigger[aria-expanded="true"] i{transform:translateY(2px) rotate(225deg)}
-.monthPickerTrigger:focus-visible,.monthGrid button:focus-visible{outline:3px solid rgba(19,123,232,.18);outline-offset:2px}
-.monthPickerPopover{position:absolute;top:calc(100% + 8px);right:0;z-index:25;width:336px;padding:18px;background:#fff;border:1px solid #dfe7f0;border-radius:10px;box-shadow:0 16px 38px rgba(24,48,76,.16)}
-.monthPickerYear{display:block;margin-bottom:14px;color:var(--ink);font-size:14px;text-align:center}
-.monthPickerPopover,.floorPickerPopover{transform-origin:top right;animation:pickerIn 180ms ease-out both}
 @keyframes pickerIn{from{opacity:0;transform:translateY(-5px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
-@media(prefers-reduced-motion:reduce){.monthPickerPopover,.floorPickerPopover{animation:none}.monthPickerTrigger i,.floorPickerTrigger i{transition:none}}
-.monthGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
-.monthGrid button{min-height:42px;padding:7px 5px;color:#435168;background:transparent;border:1px solid transparent;border-radius:7px;font:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:color 140ms ease,background 140ms ease,border-color 140ms ease}
-.monthGrid button:hover{color:var(--ink);background:#f2f6fa;border-color:#e5ebf2}
-.monthGrid .monthSelected{color:#fff;background:var(--teal-dark);border-color:var(--teal-dark)}
-.monthGrid .monthSelected:hover{color:#fff;background:#067864;border-color:#067864}
-.floorPickerTrigger{display:flex;width:142px;height:40px;align-items:center;gap:9px;padding:0 13px;color:#253246;background:#fff;border:1px solid #d7e1eb;border-radius:8px;box-shadow:0 4px 12px rgba(32,66,103,.05);font:inherit;font-size:12px;font-weight:650;cursor:pointer}
-.floorPickerTrigger svg{flex:0 0 auto;color:#607086}
-.floorPickerTrigger span{flex:1;text-align:left}
-.floorPickerTrigger i{width:7px;height:7px;border-right:1.5px solid #6b7280;border-bottom:1.5px solid #6b7280;transform:translateY(-2px) rotate(45deg);transition:transform 160ms ease}
-.floorPickerTrigger[aria-expanded="true"] i{transform:translateY(2px) rotate(225deg)}
-.floorPickerTrigger:focus-visible,.floorOptions input:focus-visible,.floorPickerFooter button:focus-visible{outline:3px solid rgba(19,123,232,.18);outline-offset:2px}
-.floorPickerPopover{position:absolute;top:calc(100% + 8px);right:0;z-index:26;width:320px;overflow:hidden;background:#fff;border:1px solid #dfe7f0;border-radius:10px;box-shadow:0 16px 38px rgba(24,48,76,.16)}
-.floorPickerHead{display:grid;gap:3px;padding:16px 16px 12px;border-bottom:1px solid #e8edf3}
-.floorPickerHead strong{font-size:13px}
-.floorPickerHead span{color:var(--muted);font-size:10px}
-.floorOptions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:268px;padding:8px;overflow-y:auto;scrollbar-width:thin}
-.floorOptions label{display:flex;min-height:38px;align-items:center;gap:9px;padding:7px 8px;color:#435168;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer}
-.floorOptions label:hover{background:#f3f7fa}
-.floorOptions input{width:16px;height:16px;margin:0;accent-color:var(--teal-dark);cursor:pointer}
-.floorOptions .allFloorsOption{grid-column:1/-1;border-bottom:1px solid #e8edf3;border-radius:0}
-.floorPickerFooter{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border-top:1px solid #e8edf3}
-.floorPickerFooter>span{color:var(--muted);font-size:9px}
-.floorPickerFooter>div{display:flex;gap:7px}
-.floorPickerFooter button{height:32px;padding:0 12px;border-radius:7px;font:inherit;font-size:10px;font-weight:700;cursor:pointer}
-.floorCancel{color:#536277;background:#fff;border:1px solid #d7e1eb}
-.floorApply{color:#fff;background:var(--blue);border:1px solid var(--blue)}
-.floorApply:disabled{color:#8b98aa;background:#edf1f5;border-color:#e1e7ed;cursor:not-allowed}
 .headerCopilotButton,.copilotFloatingButton{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:38px;padding:0 14px;color:#fff;background:var(--blue);border:1px solid var(--blue);border-radius:9px;box-shadow:0 8px 18px rgba(19,123,232,.18);font:inherit;font-size:11px;font-weight:750;white-space:nowrap;cursor:pointer;transition:background 160ms ease,transform 160ms ease,box-shadow 160ms ease}
 .headerCopilotButton:hover,.copilotFloatingButton:hover{background:#096bd0;box-shadow:0 10px 22px rgba(19,123,232,.25);transform:translateY(-1px)}
 .headerCopilotButton:focus-visible,.copilotFloatingButton:focus-visible{outline:3px solid rgba(19,123,232,.22);outline-offset:2px}
@@ -112,10 +73,6 @@
 .summaryGrid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,.8fr);gap:12px}
 .explorerGrid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:12px}
 .comparisonBreakdown{display:block}
-.sortControl{display:flex;align-items:center;gap:8px;flex:0 0 auto}
-.sortControl>span{color:#667085;font-size:10px;font-weight:650;white-space:nowrap}
-.sortControl select{height:34px;padding:0 30px 0 10px;color:#344054;background:#fff;border:1px solid #d7e1eb;border-radius:7px;outline:0;font:inherit;font-size:10px;font-weight:650;cursor:pointer}
-.sortControl select:focus-visible{border-color:var(--blue);box-shadow:0 0 0 3px rgba(19,123,232,.13)}
 .detailsGrid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr);gap:12px}
 .summaryStats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;margin:12px 16px 16px;overflow:hidden;background:#e7edf3;border:1px solid #e7edf3;border-radius:10px}
 .summaryStats>div{display:grid;gap:5px;padding:16px;background:#fff}
@@ -152,16 +109,8 @@
 @media(max-width:700px){
   .appShell{padding-left:0}
   .topbar{display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px}
-  .headerPickers{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;width:100%;margin-top:2px}
-  .monthPicker,.floorPicker{width:100%}
-  .monthPickerTrigger{width:100%}
-  .floorPickerTrigger{width:100%}
-  .monthPickerPopover{right:auto;left:0;width:min(336px,calc(100vw - 24px))}
-  .floorPickerPopover{right:0;width:min(320px,calc(100vw - 24px))}
   .dashboardTabs{margin-top:10px}
   .floorComparisonPanel .panelHead{align-items:stretch;flex-direction:column}
-  .sortControl{justify-content:space-between}
-  .sortControl select{min-width:170px}
   .dynamicSection{margin-top:8px}
   .summaryStats{margin-inline:12px}
   .copilotFloatingButton{right:12px;bottom:12px}
@@ -175,3 +124,5 @@
 @media(max-width:560px){
   .metricsGrid{grid-template-columns:1fr}
 }
+
+.sharedFilters{margin-bottom:20px;position:relative;z-index:12}

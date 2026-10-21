@@ -1,6 +1,7 @@
 import type { ConsentAction } from "@/lib/copilot-consent";
 import type { CopilotDashboardPayload } from "@/lib/copilot-dashboard-data";
 import type { CopilotRecommendationsPayload } from "@/lib/copilot-recommendations-data";
+import type { CopilotManagementSummaryPayload } from "@/types/insights";
 
 export type MessageSender = "user" | "assistant" | "system";
 
@@ -55,4 +56,5 @@ export interface ChatResponse {
   choices?: ChatChoice[];
   dashboardPayload?: CopilotDashboardPayload;
   recommendationsPayload?: CopilotRecommendationsPayload;
+  managementSummaryPayload?: CopilotManagementSummaryPayload;
 }

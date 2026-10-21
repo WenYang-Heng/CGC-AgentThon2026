@@ -6,6 +6,8 @@ import { ConnectionSettings, CopilotStudioClient, ScopeHelper } from "@microsoft
 import { readConsentCard, type ConsentAction } from "@/lib/copilot-consent";
 import { parseCopilotDashboardPayload } from "@/lib/copilot-dashboard-data";
 import { parseCopilotRecommendations } from "@/lib/copilot-recommendations-data";
+import { parseCopilotManagementSummary } from "@/lib/copilot-management-summary-data";
+import type { ManagementSummaryRequest } from "@/types/insights";
 import { prepareChatAttachments } from "@/lib/chat-attachments";
 import type { CopilotAuthState } from "@/types/copilot-auth";
 import type { ChatChoice, ChatContext, ChatResponse, EmailEnergyInsightsRequest } from "@/types/chatbot";
@@ -229,6 +231,7 @@ function readActivities(activities: Awaited<ReturnType<CopilotStudioClient["askQ
   if (consent?.card) return { text: messages.join("\n\n") || consent.card.text, consentActions: consent.card.actions, consentActivityId: consent.activityId };
   const dashboardPayload = parseCopilotDashboardPayload(messages);
   const recommendationsPayload = parseCopilotRecommendations(messages);
+  const managementSummaryPayload = parseCopilotManagementSummary(messages);
   // Keep the agent's wording and all message activities, including clarifying questions.
   const text = messages.join("\n\n");
   // Only the latest message's choices remain actionable after a multi-message turn.
@@ -239,8 +242,37 @@ function readActivities(activities: Awaited<ReturnType<CopilotStudioClient["askQ
     if (action.type === "messageBack" && (action.value != null || action.text?.trim())) return [{ title: action.title, type: "messageBack" as const, value: action.value, text: action.text, activityId: lastMessage?.id }];
     return [];
   });
-  if (!text && !choices.length && !dashboardPayload && !recommendationsPayload) throw new Error("Copilot returned no displayable text response.");
-  return { text, choices: choices.length ? choices : undefined, dashboardPayload, recommendationsPayload };
+  if (!text && !choices.length && !dashboardPayload && !recommendationsPayload && !managementSummaryPayload) throw new Error("Copilot returned no displayable text response.");
+  return { text, choices: choices.length ? choices : undefined, dashboardPayload, recommendationsPayload, managementSummaryPayload };
+}
+
+export async function requestCopilotManagementSummary(context: ManagementSummaryRequest): Promise<ChatResponse> {
+  console.log("[Management Summary] Sending Copilot event", {
+    eventName: "ui_generate_management_summary",
+    payload: JSON.stringify(context, null, 2),
+  });
+  const activities = await withCopilotClient((connected, id) => connected.sendActivity(Activity.fromObject({
+    type: "event", name: "ui_generate_management_summary", value: context,
+  }), id));
+  const messageCount = activities.filter(activity => activity.type === "message" && activity.text?.trim()).length;
+  console.log("[Management Summary] Received Copilot activities", activities.map(activity => ({
+    type: activity.type, name: activity.name, text: activity.text,
+  })));
+  if (!messageCount) {
+    if (activities.some(activity => activity.attachments?.some(attachment => attachment.contentType === "application/vnd.microsoft.card.adaptive" && readConsentCard(attachment.content)))) return readActivities(activities);
+    console.warn("[Management Summary] Missing topic reply", {
+      eventName: "ui_generate_management_summary", activityCount: activities.length,
+      activityTypes: activities.map(activity => activity.type), messageCount,
+    });
+    throw new Error(`Copilot returned no summary message for ui_generate_management_summary. Received ${activities.length} activities (${activities.map(activity => activity.type).join(", ") || "none"}), with no nonempty message text. Check that the published topic listens for this event and sends the managementSummary JSON in a final Message node. A Prompt or flow output alone is not a reply.`);
+  }
+  const response = readActivities(activities);
+  if (!response.managementSummaryPayload && !response.consentActions) {
+    console.warn("[Management Summary] Invalid topic reply", {
+      eventName: "ui_generate_management_summary", activityCount: activities.length, messageCount,
+    });
+  }
+  return response;
 }
 
 export async function submitChatChoice(choice: ChatChoice): Promise<ChatResponse> {

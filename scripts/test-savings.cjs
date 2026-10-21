@@ -64,7 +64,8 @@ test('filters, sorting, selected totals and overlap are deterministic', () => {
 });
 
 test('prototype signals associate with audit measures without changing totals', () => {
-  assert.equal(data.operationalSignals.length, 9);
+  assert.equal(data.operationalSignals.length, 4);
+  assert.equal(new Set(data.operationalSignals.map(signal => signal.id)).size, 4);
   const f04 = data.operationalSignals.find(item => item.id === 'MOCK-F04-2026-07');
   assert.ok(f04.relatedIds.includes('AUD-001'));
   for (const id of ['MOCK-F08-2026-03', 'MOCK-F12-2026-05']) assert.equal(data.operationalSignals.find(item => item.id === id).relatedIds.length, 0);

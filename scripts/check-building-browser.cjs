@@ -15,12 +15,12 @@ const { chromium } = require(process.argv[2] || 'playwright');
    const bounds=await canvas.evaluate(node=>{const c=node.getBoundingClientRect(),v=node.closest('[class*=exteriorViewer]').getBoundingClientRect();return {canvas:c.x+c.width/2,viewer:v.x+v.width/2};});
    assert.ok(Math.abs(bounds.canvas-bounds.viewer)<1,'Model canvas must stay centered');
    assert.equal(await page.getByRole('button',{name:'Floor 9 Plan',exact:true}).count(),0);
-   await page.getByRole('button',{name:/Building floor:/}).click();await page.getByRole('option',{name:'Floor 4',exact:true}).click();
+   await page.getByRole('button',{name:/Floor:/}).click();await page.getByRole('dialog',{name:'Floor',exact:true}).getByRole('button',{name:'Floor 4',exact:true}).click();await page.waitForURL(/floors=F04/);await page.waitForFunction(()=>document.querySelector('aside[aria-label="Floor energy details"]')?.textContent.includes('Electricity:'));
    const details=page.getByRole('complementary',{name:'Floor energy details'});
    assert.match(await details.textContent(),/Electricity:/);
-   await page.getByRole('button',{name:/Energy period:/}).click();await page.getByRole('option',{name:'July 2026',exact:true}).click();
-   assert.match(await details.textContent(),/9,925/);
-   await page.getByRole('button',{name:/Heatmap metric:/}).click();await page.getByRole('option',{name:/Energy intensity/}).click();
+   await page.getByRole('button',{name:/Analysis Period:/}).click();await page.getByRole('combobox',{name:'Start month'}).selectOption('6');await page.getByRole('combobox',{name:'End month'}).selectOption('6');await page.getByRole('button',{name:'Done',exact:true}).click();await page.waitForURL(/startMonth=6.*endMonth=6/);
+   await page.waitForFunction(()=>document.querySelector('aside[aria-label="Floor energy details"]')?.textContent.includes('9,925'));assert.match(await details.textContent(),/9,925/);
+   await page.getByRole('button',{name:/^Filters/}).click();await page.getByRole('combobox',{name:'Heatmap metric'}).selectOption('intensity');await page.getByRole('button',{name:'Apply filters',exact:true}).click();
    assert.ok((await details.textContent()).includes('kWh/m'));
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'No page overflow');
    if(width===1440){

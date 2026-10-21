@@ -62,3 +62,5 @@
 .headerFilters{display:flex;align-items:center;gap:9px;margin-left:auto}.headerFilters select{height:40px;padding:0 28px 0 12px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;font-size:12px;font-weight:650}@media(min-width:701px){.header{flex-direction:row;align-items:center}}@media(max-width:700px){.headerFilters{grid-column:1/-1;justify-content:flex-end;width:100%;margin:0}.headerFilters select{min-width:0}}
 .headerFilters{flex-wrap:wrap;justify-content:flex-end}@media(max-width:700px){.headerFilters select{flex:1;max-width:100%;font-size:11px}}
 .portfolioSort{display:flex;align-items:center;margin:0}.portfolioSort select{height:38px;padding:0 28px 0 10px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;font-size:12px}
+
+.sharedFilters{margin-bottom:20px;position:relative;z-index:12}

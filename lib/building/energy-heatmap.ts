@@ -1,3 +1,4 @@
+import type { EnergyPeriod } from "@/types/energy-filters";
 import type { EnergyFloorData } from "@/app/dashboard-data";
 
 export type HeatmapMetric = "usage" | "intensity";
@@ -6,10 +7,12 @@ export interface FloorHeatmapReading {
   change: number | null; value: number | null; color: string;
 }
 const available = (value: number | null | undefined): number | null => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
-export function buildEnergyHeatmap(floors: Record<string, EnergyFloorData>, ids: string[], month: number | "year", metric: HeatmapMetric) {
+export function buildEnergyHeatmap(floors: Record<string, EnergyFloorData>, ids: string[], month: number | "year" | EnergyPeriod, metric: HeatmapMetric) {
   const periodUsage = (values: (number | null)[] | undefined) => {
-    if (month !== "year") return available(values?.[month]);
-    const months = Array.from({ length: 12 }, (_, index) => available(values?.[index]));
+    if (typeof month === "number") return available(values?.[month]);
+    const start = month === "year" ? 0 : month.startMonth;
+    const end = month === "year" ? 11 : month.endMonth;
+    const months = Array.from({ length: end - start + 1 }, (_, index) => available(values?.[index + start]));
     return months.every((value): value is number => value !== null) ? months.reduce((sum, value) => sum + value, 0) : null;
   };
   const readings = ids.map(floorId => {

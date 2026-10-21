@@ -245,9 +245,9 @@
   cursor: pointer;
 }
 .copilotSignIn button svg { flex-shrink: 0; color: #9eb1c5; }
-.copilotSignIn button:hover:not(:disabled) { color: #fff; background: #1a3047; }
+.copilotSignIn button:hover:not([aria-disabled="true"]) { color: #fff; background: #1a3047; }
 .copilotSignIn button:focus-visible { outline: 2px solid #61c8ff; outline-offset: 2px; }
 .copilotSignIn small { padding-inline: 14px; }
-.copilotSignIn button:disabled { cursor: wait; opacity: .65; }
+.copilotSignIn button[aria-disabled="true"] { cursor: wait; opacity: .65; }
 
 .copilotSignIn + .profile { margin-top: 10px; }
