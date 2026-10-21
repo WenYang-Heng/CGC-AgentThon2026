@@ -98,6 +98,8 @@ export default function ReportFormModal({ open, onClose, submitting = false, err
 
           <label className={styles.description}>Describe the issue<textarea disabled={submitting} required minLength={10} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Please describe the issue you encountered." rows={5} /><small>Provide at least 10 characters so the facilities team can investigate.</small></label>
 
+          {error && !submitting && <div className={styles.error} role="alert"><strong>Report creation was not confirmed.</strong><p>{error}</p></div>}
+
           <footer className={styles.footer}>
             <button type="button" className={styles.cancel} onClick={onClose} disabled={submitting}>Cancel</button>
             <button type="submit" className={styles.submit} aria-busy={submitting} disabled={submitting || !floor || !room || description.trim().length < 10}>{submitting && <span className={styles.spinner} aria-hidden="true" />}<span aria-live="polite">{submitting ? "Creating report…" : error ? "Retry submission" : "Submit report"}</span></button>

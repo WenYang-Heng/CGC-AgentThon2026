@@ -35,7 +35,7 @@ function setup() {
     async askQuestionAsync(text, id) {
       state.turns++; state.calls.push({ kind: 'chat', text, id });
       if (state.apiStatus) throw new Error(`Copilot request failed: ${state.apiStatus}`);
-      return [{ type: 'message', text: 'Agent response', conversation: { id: 'conversation-1' } }];
+      return state.chatActivities ?? [{ type: 'message', text: 'Agent response', conversation: { id: 'conversation-1' } }];
     }
     async sendActivity(activity, id) { state.calls.push({ kind: 'event', activity, id }); return [{ type: 'message', text: state.eventResponse ?? 'Event response' }]; }
   }
@@ -46,6 +46,7 @@ function setup() {
       if (name === '@azure/msal-browser') return { PublicClientApplication: Msal, InteractionRequiredAuthError, EventType: { ACTIVE_ACCOUNT_CHANGED: 'active' } };
       if (name === '@microsoft/agents-copilotstudio-client') return { ConnectionSettings: class { constructor(value) { Object.assign(this, value); } }, CopilotStudioClient: Client, ScopeHelper: { getScopeFromSettings: () => 'copilot-scope' } };
       if (name === '@microsoft/agents-activity') return { Activity: { fromObject: value => value } };
+      if (name === '@/lib/chat-attachments') return { prepareChatAttachments: async files => files.map(file => ({name:file.name,contentType:'application/pdf',contentUrl:'data:application/pdf;base64,VEVTVA=='})) };
       if (name === '@/lib/copilot-consent') return { readConsentCard: () => undefined };
       if (name === '@/lib/copilot-dashboard-data') return { parseCopilotDashboardPayload: () => undefined };
       if (name === '@/lib/copilot-recommendations-data') return { parseCopilotRecommendations: () => undefined };
@@ -55,6 +56,52 @@ function setup() {
   vm.runInContext(compiled, ctx);
   return { api: ctx.exports, state, account, InteractionRequiredAuthError, ctx };
 }
+
+test('Copilot choices preserve labels, values and conversation and ignore unsupported actions', async () => {
+  const { api, state } = setup();
+  await api.signInToCopilot();
+  state.chatActivities = [{ type: 'message', id: 'question-1', text: 'Choose an issue', suggestedActions: { actions: [
+    { type: 'imBack', title: 'Air conditioning', value: 'Air Conditioning' },
+    { type: 'messageBack', title: 'Equipment', text: 'Equipment', value: { issue: 'Equipment' } },
+    { type: 'openUrl', title: 'External link', value: 'https://example.com' },
+  ] } }];
+  const response = await api.sendChatMessage('Create a report');
+  assert.equal(response.text, 'Choose an issue');
+  assert.equal(response.choices.length, 2);
+  assert.equal(response.choices[0].title, 'Air conditioning');
+  await api.submitChatChoice(response.choices[0]);
+  assert.equal(state.calls.at(-1).activity.type, 'message');
+  assert.equal(state.calls.at(-1).activity.text, 'Air Conditioning');
+  assert.equal(state.calls.at(-1).activity.replyToId, 'question-1');
+  assert.equal(state.calls.at(-1).id, 'conversation-1');
+  await api.submitChatChoice(response.choices[1]);
+  assert.equal(state.calls.at(-1).activity.value.issue, 'Equipment');
+  assert.equal(state.calls.at(-1).activity.text, 'Equipment');
+  assert.equal(state.calls.at(-1).activity.channelData.postBack, true);
+});
+
+test('button-only messages are displayable and later messages supersede old choices', async () => {
+  const { api, state } = setup();
+  await api.signInToCopilot();
+  state.chatActivities = [{ type: 'message', suggestedActions: { actions: [{ type: 'imBack', title: 'Yes', value: 'yes' }] } }];
+  const response = await api.sendChatMessage('Continue');
+  assert.equal(response.choices[0].value, 'yes');
+  state.chatActivities.push({ type: 'message', text: 'The question has changed.' });
+  assert.equal((await api.sendChatMessage('Next')).choices, undefined);
+});
+
+test('multiple files are sent together as one message in the existing conversation', async () => {
+  const { api, state, account } = setup(); state.accounts = [account];
+  await api.sendChatMessage('Extract these bills', {}, [{ name: 'January.pdf' }, { name: 'February.pdf' }]);
+  assert.equal(state.calls.length, 1);
+  const sent = state.calls[0];
+  assert.equal(sent.activity.type, 'message');
+  assert.equal(sent.activity.text, 'Extract these bills');
+  assert.equal(sent.id, 'conversation-1');
+  assert.equal(sent.activity.attachments.length, 2);
+  assert.equal(sent.activity.attachments[1].name, 'February.pdf');
+  assert.match(sent.activity.attachments[0].contentUrl, /^data:application\/pdf;base64,/);
+});
 
 for (const origin of ['http://localhost:3000', 'https://cgc-agent-thon2026.vercel.app']) {
   test(`sign-in and sign-out use the current origin: ${origin}`, async () => {
@@ -83,6 +130,19 @@ test('waste report sends the entered description and uses the agent report ID', 
   assert.equal(state.calls[0].activity.value.reportedBy, account.username);
   assert.equal(result.reportId, 'AGENT-42');
   assert.equal(result.success, true);
+});
+
+test('report failures explain a missing confirmation and never invent a ticket ID', async () => {
+  const { api, state, account } = setup(); state.accounts = [account];
+  const payload = { issueType: 'Lights', floorId: 'F06', floorName: 'Floor 6', roomType: 'Meeting Room', description: 'Lights left on after hours.' };
+  for (const reply of ['', 'Your report has been created.', '{"unrelated": true}', 'null', '{"success":true,"reportId":""}']) {
+    state.eventResponse = reply;
+    await assert.rejects(api.createEnergyWasteReport(payload), /Copilot did not confirm report creation/);
+  }
+  state.eventResponse = JSON.stringify({ success: false, message: 'Ticket action unavailable.' });
+  const failed = await api.createEnergyWasteReport(payload);
+  assert.equal(failed.success, false);
+  assert.equal(failed.message, 'Ticket action unavailable.');
 });
 
 test('Insights email uses one custom event with the exact payload and checks the result', async () => {

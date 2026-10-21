@@ -6,8 +6,9 @@ import { ConnectionSettings, CopilotStudioClient, ScopeHelper } from "@microsoft
 import { readConsentCard, type ConsentAction } from "@/lib/copilot-consent";
 import { parseCopilotDashboardPayload } from "@/lib/copilot-dashboard-data";
 import { parseCopilotRecommendations } from "@/lib/copilot-recommendations-data";
+import { prepareChatAttachments } from "@/lib/chat-attachments";
 import type { CopilotAuthState } from "@/types/copilot-auth";
-import type { ChatContext, ChatResponse, EmailEnergyInsightsRequest } from "@/types/chatbot";
+import type { ChatChoice, ChatContext, ChatResponse, EmailEnergyInsightsRequest } from "@/types/chatbot";
 
 const config = {
   environmentId: process.env.NEXT_PUBLIC_COPILOT_ENVIRONMENT_ID ?? "",
@@ -230,8 +231,24 @@ function readActivities(activities: Awaited<ReturnType<CopilotStudioClient["askQ
   const recommendationsPayload = parseCopilotRecommendations(messages);
   // Keep the agent's wording and all message activities, including clarifying questions.
   const text = messages.join("\n\n");
-  if (!text && !dashboardPayload && !recommendationsPayload) throw new Error("Copilot returned no displayable text response.");
-  return { text, dashboardPayload, recommendationsPayload };
+  // Only the latest message's choices remain actionable after a multi-message turn.
+  const lastMessage = activities.filter(activity => activity.type === "message").at(-1);
+  const choices = (lastMessage?.suggestedActions?.actions ?? []).flatMap<ChatChoice>(action => {
+    if (!action.title?.trim()) return [];
+    if (action.type === "imBack" && typeof action.value === "string" && action.value.trim()) return [{ title: action.title, type: "imBack" as const, value: action.value, activityId: lastMessage?.id }];
+    if (action.type === "messageBack" && (action.value != null || action.text?.trim())) return [{ title: action.title, type: "messageBack" as const, value: action.value, text: action.text, activityId: lastMessage?.id }];
+    return [];
+  });
+  if (!text && !choices.length && !dashboardPayload && !recommendationsPayload) throw new Error("Copilot returned no displayable text response.");
+  return { text, choices: choices.length ? choices : undefined, dashboardPayload, recommendationsPayload };
+}
+
+export async function submitChatChoice(choice: ChatChoice): Promise<ChatResponse> {
+  return readActivities(await withCopilotClient((connected, id) => connected.sendActivity(Activity.fromObject({
+    type: "message", replyToId: choice.activityId,
+    text: choice.type === "imBack" ? String(choice.value) : choice.text,
+    ...(choice.type === "messageBack" ? { value: choice.value, channelData: { postBack: true } } : {}),
+  }), id)));
 }
 
 export async function requestCopilotRecommendations(context: ChatContext = {}) {
@@ -242,11 +259,17 @@ export async function requestCopilotRecommendations(context: ChatContext = {}) {
   }), id)));
 }
 
-export async function sendChatMessage(message: string, context: ChatContext = {}) {
+export async function sendChatMessage(message: string, context: ChatContext = {}, files: File[] = []) {
   // Conversational topic selection belongs to the agent's orchestration.
   const contextLine = Object.keys(context).length
     ? `\n\nApplication context for resolving references only:\n${JSON.stringify(context)}\n\nUse this context when relevant. Do not treat it as a separate user request.`
     : "";
+  if (files.length) {
+    const attachments = await prepareChatAttachments(files);
+    return readActivities(await withCopilotClient((connected, id) => connected.sendActivity(Activity.fromObject({
+      type: "message", text: `${message}${contextLine}`, attachments,
+    }), id)));
+  }
   return readActivities(await withCopilotClient((connected, id) => connected.askQuestionAsync(`${message}${contextLine}`, id)));
 }
 
@@ -271,7 +294,8 @@ function parseJsonMessage(text: string) {
   const candidate = fenced ?? text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
   if (!candidate) return null;
   try {
-    return JSON.parse(candidate) as Record<string, unknown>;
+    const value: unknown = JSON.parse(candidate);
+    return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
   } catch {
     return null;
   }
@@ -300,8 +324,16 @@ export async function createEnergyWasteReport(payload: CreateEnergyWasteReportRe
     value: { ...payload, reportedBy },
   }), id));
   const messages = activities.filter((activity) => activity.type === "message" && activity.text?.trim()).map((activity) => activity.text!.trim());
-  const parsed = messages.map(parseJsonMessage).find((value) => value !== null);
-  if (!parsed) throw new Error(messages.at(-1) ?? "The agent did not return a report-creation response.");
+  const parsed = messages.map(parseJsonMessage).find(value => value !== null && typeof value.success === "boolean");
+  if (!parsed || (parsed.success === true && (typeof parsed.reportId !== "string" || !parsed.reportId.trim()))) {
+    // Report metadata only: never log tokens, user descriptions or agent message bodies.
+    console.error("[Energy Report] Missing report confirmation", {
+      eventName: "ui_create_report_request", activityCount: activities.length,
+      messageCount: messages.length, activityTypes: activities.map(activity => activity.type),
+      hasSuccessFlag: typeof parsed?.success === "boolean", hasReportId: typeof parsed?.reportId === "string" && !!parsed.reportId.trim(),
+    });
+    throw new Error("Copilot did not confirm report creation. Check that the published topic handles ui_create_report_request and returns success, reportId, status and message as JSON. Check existing tickets before retrying.");
+  }
   const status = parsed.status === "Active" || parsed.status === "Under Review" || parsed.status === "Resolved" ? parsed.status : null;
   return {
     success: parsed.success === true,

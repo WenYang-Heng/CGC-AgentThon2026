@@ -4,6 +4,14 @@ import type { CopilotRecommendationsPayload } from "@/lib/copilot-recommendation
 
 export type MessageSender = "user" | "assistant" | "system";
 
+export interface ChatChoice {
+  title: string;
+  type: "imBack" | "messageBack";
+  value: unknown;
+  text?: string;
+  activityId?: string;
+}
+
 export interface EmailEnergyInsightsRequest {
   building: string;
   floorId: string | null;
@@ -18,6 +26,8 @@ export interface ChatMessage {
   text: string;
   consentActions?: ConsentAction[];
   consentActivityId?: string;
+  choices?: ChatChoice[];
+  attachments?: { name: string; size: number; file?: File }[];
 }
 
 export interface ChatContext {
@@ -42,6 +52,7 @@ export interface ChatResponse {
   text: string;
   consentActions?: ConsentAction[];
   consentActivityId?: string;
+  choices?: ChatChoice[];
   dashboardPayload?: CopilotDashboardPayload;
   recommendationsPayload?: CopilotRecommendationsPayload;
 }
