@@ -77,7 +77,7 @@ test('waste report sends the entered description and uses the agent report ID', 
   const result = await api.createEnergyWasteReport({ issueType: 'Lights', floorId: 'F06', floorName: 'Floor 6', roomType: 'Meeting Room', description });
   assert.equal(state.calls.length, 1);
   assert.equal(state.calls[0].kind, 'event');
-  assert.equal(state.calls[0].activity.name, 'ui.create_energy_waste_report');
+  assert.equal(state.calls[0].activity.name, 'ui_create_report_request');
   assert.equal(state.calls[0].activity.value.description, description);
   assert.equal(state.calls[0].activity.value.floorId, 'F06');
   assert.equal(state.calls[0].activity.value.reportedBy, account.username);

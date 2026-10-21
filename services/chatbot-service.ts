@@ -296,7 +296,7 @@ export async function createEnergyWasteReport(payload: CreateEnergyWasteReportRe
   const reportedBy = payload.reportedBy ?? getCurrentAccount(msal)?.username ?? "Unknown";
   const activities = await withCopilotClient((connected, id) => connected.sendActivity(Activity.fromObject({
     type: "event",
-    name: "ui.create_energy_waste_report",
+    name: "ui_create_report_request",
     value: { ...payload, reportedBy },
   }), id));
   const messages = activities.filter((activity) => activity.type === "message" && activity.text?.trim()).map((activity) => activity.text!.trim());

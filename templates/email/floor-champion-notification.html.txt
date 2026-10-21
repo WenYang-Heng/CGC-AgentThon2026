@@ -3,16 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Floor Champion Energy Notification</title>
+  <title>Energy Waste Report Notification</title>
 </head>
 <!--
-Suggested subject: Energy Review Required | Menara CGC | {{floorName}} | {{issue}}
+Suggested subject: New Energy Waste Report | Menara CGC | {{floorName}} | {{issue}}
 
 Flow inputs: floorName, summary, issue, roomType, description.
 Replace each {{placeholder}} with the corresponding trigger dynamic content in
 the email body. These placeholders are not substituted automatically.
 HTML-escape all inserted text. For multiline summary or description text,
 replace newlines with <br> after escaping it.
+
+The notification timestamp uses Power Automate's inline expression to convert
+UTC to Malaysia time (UTC+8). It records notification generation time, not the
+original ticket submission time. No additional trigger input is required.
 
 The banner URL is fixed configuration and requires public/email/cgc-email-banner.png
 to be deployed to the production website before recipients can load it.
@@ -27,13 +31,13 @@ Send this file's contents as HTML. No frontend event contract is changed by this
           <tr>
             <td style="padding:26px 28px;background-color:#12365e;color:#ffffff;">
               <p style="margin:0 0 8px;font-size:12px;line-height:18px;letter-spacing:1px;">CGC ENERGY INTELLIGENCE</p>
-              <h1 style="margin:0;font-size:23px;line-height:30px;font-weight:600;">Floor Champion Notification</h1>
+              <h1 style="margin:0;font-size:23px;line-height:30px;font-weight:600;">New Energy Waste Report</h1>
             </td>
           </tr>
           <tr>
             <td style="padding:28px;">
               <p style="margin:0 0 18px;font-size:14px;line-height:22px;">Dear Floor Champion,</p>
-              <p style="margin:0 0 22px;font-size:14px;line-height:22px;">Please review the following energy insights for your floor and coordinate any necessary follow-up with the Facilities team.</p>
+              <p style="margin:0 0 22px;font-size:14px;line-height:22px;">An energy waste report has been submitted for your floor. Please investigate the reported issue and coordinate the necessary corrective action with the Facilities team. The report details are provided below.</p>
 
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f5f8fc;border:1px solid #e2e9f1;">
                 <tr>
@@ -46,26 +50,21 @@ Send this file's contents as HTML. No frontend event contract is changed by this
                 </tr>
                 <tr>
                   <td style="padding:12px 14px;font-size:13px;line-height:20px;color:#66748b;border-bottom:1px solid #e2e9f1;">Issue</td>
-                  <td style="padding:12px 14px;font-size:13px;line-height:20px;border-bottom:1px solid #e2e9f1;">{{issue}}</td>
+                  <td style="padding:12px 14px;font-size:13px;line-height:20px;border-bottom:1px solid #e2e9f1;">{{issueType}}</td>
                 </tr>
                 <tr>
-                  <td style="padding:12px 14px;font-size:13px;line-height:20px;color:#66748b;">Room type</td>
-                  <td style="padding:12px 14px;font-size:13px;line-height:20px;">{{roomType}}</td>
+                  <td style="padding:12px 14px;font-size:13px;line-height:20px;color:#66748b;border-bottom:1px solid #e2e9f1;">Room type</td>
+                  <td style="padding:12px 14px;font-size:13px;line-height:20px;border-bottom:1px solid #e2e9f1;">{{roomType}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 14px;font-size:13px;line-height:20px;color:#66748b;">Notification time</td>
+                  <td style="padding:12px 14px;font-size:13px;line-height:20px;">{{notificationTime}}</td>
                 </tr>
               </table>
-
-              <h2 style="margin:24px 0 10px;font-size:16px;line-height:24px;color:#12365e;">Energy insights</h2>
-              <p style="margin:0;font-size:14px;line-height:23px;overflow-wrap:anywhere;">{{summary}}</p>
 
               <h2 style="margin:24px 0 10px;font-size:16px;line-height:24px;color:#12365e;">Issue description</h2>
               <p style="margin:0;font-size:14px;line-height:23px;overflow-wrap:anywhere;">{{description}}</p>
 
-              <h2 style="margin:24px 0 10px;font-size:16px;line-height:24px;color:#12365e;">Requested follow-up</h2>
-              <ol style="margin:0;padding-left:20px;font-size:14px;line-height:23px;">
-                <li style="padding-bottom:6px;">Check whether operating hours, occupancy or equipment use explain the reported consumption.</li>
-                <li style="padding-bottom:6px;">Review lights, air conditioning and equipment for avoidable usage.</li>
-                <li>Share relevant findings and any actions taken with the Facilities team.</li>
-              </ol>
               <p style="margin:24px 0 0;font-size:14px;line-height:22px;">Thank you for supporting responsible energy use.</p>
               <p style="margin:18px 0 0;font-size:14px;line-height:22px;">Regards,<br><strong>CGC Energy Intelligence</strong></p>
             </td>
