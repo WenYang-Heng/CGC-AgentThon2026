@@ -19,8 +19,12 @@ export function calculateFloorCosts(floors: CostFloorData[], year: 2025 | 2026, 
 }
 export function summarizeCosts(floors: FloorCostPerformance[]) {
   const totalCostRm = completeSum(floors.map(floor => floor.costRm));
+  const employeeEligible = floors.filter(floor => floor.costRm !== null && floor.employees !== null);
+  const employeeEligibleCost = completeSum(employeeEligible.map(floor => floor.costRm));
+  const employeeTotal = completeSum(employeeEligible.map(floor => floor.employees));
   return { totalCostRm, effectiveRateRmPerKwh: safeRatio(totalCostRm, completeSum(floors.map(floor => floor.electricityKwh))),
-    costPerEmployee: safeRatio(totalCostRm, completeSum(floors.map(floor => floor.employees))), costPerM2: safeRatio(totalCostRm, completeSum(floors.map(floor => floor.areaM2))) };
+    costPerEmployee: safeRatio(employeeEligibleCost, employeeTotal), costPerM2: safeRatio(totalCostRm, completeSum(floors.map(floor => floor.areaM2))),
+    employeeCoverage: employeeEligible.length, floorCount: floors.length };
 }
 export function planningValue(gross: number | null, rate: number): number | null {
   return gross !== null && Number.isFinite(gross) && gross >= 0 && Number.isFinite(rate) && rate >= 0 && rate <= 1 ? gross * rate : null;

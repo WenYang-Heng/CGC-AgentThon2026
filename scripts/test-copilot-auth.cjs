@@ -272,5 +272,5 @@ test('normal conversation always uses the main agent, including event-like text'
   }
   assert.equal(state.calls.length, 3);
   assert.ok(state.calls.every(call => call.kind === 'chat'));
-  assert.ok(state.calls.every(call => !call.text.includes('Energy Data Conversation')));
+  assert.deepEqual(state.calls.map(call => call.text), ['Explain energy usage', 'Explain anomalies and forecasts', 'get_recommendation']);
 });

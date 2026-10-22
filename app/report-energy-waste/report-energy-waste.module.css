@@ -24,6 +24,13 @@
 
 @media(max-width:700px){.shell{padding-left:0}.workspace{padding:16px 12px 72px}.pageHeader{grid-template-columns:38px minmax(0,1fr);align-items:start;gap:10px}.menuButton{display:grid;width:38px;height:38px;place-items:center;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:9px}.pageHeader h1{font-size:25px}.pageHeader>div>span{max-width:34ch;line-height:1.45}.createButton{grid-column:1/-1;width:100%;margin-top:4px}.panelHeader{padding:16px 15px 12px}.tabs{gap:18px}.scrim{position:fixed;inset:0;z-index:35;display:block;background:rgba(5,17,29,.48);border:0}}
 @media(prefers-reduced-motion:reduce){.createButton,.tabs button::after{transition:none}}
-.successMessage{margin:0 0 14px;padding:10px 14px;color:#067c61;background:#eefaf6;border:1px solid #ccebe2;border-radius:8px;font-size:12px}
+.successMessage{display:grid;grid-template-columns:32px minmax(0,1fr) 32px;align-items:center;gap:11px;margin:0 0 14px;padding:11px 12px;color:#075f4e;background:#eefaf6;border:1px solid #bfe7dc;border-radius:10px;box-shadow:0 8px 22px rgba(32,66,103,.045);font-size:11px;line-height:1.45}
+.successMessage>span:nth-child(2){display:grid;gap:1px}
+.successMessage strong{color:#064f42;font-size:12px}
+.successIcon{display:grid;width:32px;height:32px;place-items:center;color:#fff;background:#009c6e;border-radius:50%}
+.successIcon svg{width:17px;height:17px}
+.successMessage button{display:grid;width:32px;height:32px;place-items:center;padding:0;color:#377465;background:transparent;border:0;border-radius:7px;cursor:pointer}
+.successMessage button:hover{color:#064f42;background:#dff5ee}
+.successMessage button svg{width:16px;height:16px}
 
 .sharedFilters{margin-bottom:20px;position:relative;z-index:12}

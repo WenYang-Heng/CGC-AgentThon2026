@@ -22,7 +22,7 @@ function Popover({ label, icon, children }: { label: string; icon: ReactNode; ch
     const dismiss = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false); };
     document.addEventListener("pointerdown", dismiss); return () => document.removeEventListener("pointerdown", dismiss);
   }, [open]);
-  return <div ref={root} className={styles.picker} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }} onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); close(); } }}>
+  return <div ref={root} className={styles.picker} onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); close(); } }}>
     <button id={id + "-trigger"} ref={trigger} type="button" className={styles.trigger} aria-label={label} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => setOpen(current => !current)} onKeyDown={event => { if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); setOpen(true); } }}>{icon}<span>{label}</span><ChevronDown size={15} /></button>
     {open && <div id={id} role="dialog" aria-label={label.split(":")[0]} className={styles.popover}>{children(close)}</div>}
   </div>;

@@ -3,8 +3,6 @@
 import { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { energyNavigationHref } from "@/lib/energy-filters";
 import { Building2, ChartNoAxesCombined, ClipboardList, LayoutDashboard, Wallet, type LucideIcon } from "lucide-react";
 import cgcLogo from "@/public/cgc-logo.jpeg";
 import { signInToCopilot, signOutOfCopilot } from "@/services/chatbot-service";
@@ -46,7 +44,6 @@ export default function Sidebar({
   activeHref = "#explorer",
   mobileOpen = false,
 }: SidebarProps) {
-  const searchParams = useSearchParams();
   const auth = useCopilotAuth();
   const copilotStatus = auth.status;
   const authBusy = copilotStatus === "checking" || copilotStatus === "signing-in";
@@ -69,7 +66,7 @@ export default function Sidebar({
           return (
             <Link
               key={item.href}
-              href={energyNavigationHref(item.href, new URLSearchParams(searchParams.toString()))}
+              href={item.href}
               className={active ? styles.active : ""}
               aria-current={active ? "page" : undefined}
             >

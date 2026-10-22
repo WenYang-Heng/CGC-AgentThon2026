@@ -7,7 +7,6 @@ import { MONTHS, isMonthInPeriod } from "@/lib/energy-filters";
 import Sidebar from "@/components/Sidebar/Sidebar";
 import ReportFormModal from "@/components/ReportFormModal/ReportFormModal";
 import ReportTable, { EnergyWasteReport } from "@/components/ReportTable/ReportTable";
-import { createEnergyWasteReport } from "@/services/chatbot-service";
 import styles from "./report-energy-waste.module.css";
 
 type Tab = "active" | "review" | "resolved";
@@ -36,7 +35,6 @@ export default function ReportEnergyWastePage() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const submissionInProgress = useRef(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const scopedReports = useMemo(() => reports.filter(report => {
@@ -57,11 +55,11 @@ export default function ReportEnergyWastePage() {
         <header className={styles.pageHeader}>
           <button className={styles.menuButton} type="button" onClick={() => setMobileNavOpen((value) => !value)} aria-label="Toggle navigation" aria-expanded={mobileNavOpen}><Icon name="menu" /></button>
           <h1>Report Energy Waste</h1>
-          <button className={styles.createButton} type="button" disabled={submitting} onClick={() => { setSubmitError(null); setSuccessMessage(null); setModalOpen(true); }}><Icon name="plus" /><span>Create report</span></button>
+          <button className={styles.createButton} type="button" disabled={submitting} onClick={() => { setSuccessMessage(null); setModalOpen(true); }}><Icon name="plus" /><span>Create report</span></button>
         </header>
 
         <div className={styles.sharedFilters}><EnergyFilterBar value={common.value} onChange={common.onChange} availableYears={[2025, 2026]} floorSelection="multi" advancedFilters={[{ key: "issue", label: "Issue type", value: issueFilter, options: [{ value: "", label: "All issue types" }, ...["Lights", "Air Conditioning", "Equipment"].map(value => ({ value, label: value }))] }]} onApplyAdvanced={values => setIssueFilter(values.issue)} /></div>
-        {successMessage && <p className={styles.successMessage} role="status">{successMessage}</p>}
+        {successMessage && <div className={styles.successMessage} role="status"><span className={styles.successIcon} aria-hidden="true"><Icon name="check" /></span><span><strong>Report submitted</strong>{successMessage}</span><button type="button" onClick={() => setSuccessMessage(null)} aria-label="Dismiss success message"><Icon name="close" /></button></div>}
 
         <section className={styles.reportPanel} aria-labelledby="reports-heading">
           <div className={styles.tabs} role="tablist" aria-label="Report status">
@@ -73,32 +71,20 @@ export default function ReportEnergyWastePage() {
         </section>
       </main>
       {mobileNavOpen && <button type="button" className={styles.scrim} aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />}
-      <ReportFormModal open={modalOpen} submitting={submitting} error={submitError} onClose={closeModal} onSubmit={async (report) => {
+      <ReportFormModal open={modalOpen} submitting={submitting} onClose={closeModal} onSubmit={async (report) => {
         if (submissionInProgress.current) return;
         submissionInProgress.current = true;
         setSubmitting(true);
-        setSubmitError(null);
         setSuccessMessage(null);
-        const minimumLoading = new Promise<void>(resolve => window.setTimeout(resolve, 1500));
         try {
-          const request = createEnergyWasteReport({
-            issueType: report.issue,
-            floorId: report.floorId,
-            floorName: report.floorName,
-            roomType: report.roomType,
-            description: report.description,
-          });
-          const [outcome] = await Promise.all([request.then(result => ({ result }), error => ({ error })), minimumLoading]);
-          if ("error" in outcome) throw outcome.error;
-          const result = outcome.result;
-          if (!result.success || !result.reportId) throw new Error(result.message || "The report could not be created.");
+          await new Promise<void>(resolve => window.setTimeout(resolve, 650));
+          const highestId = reports.reduce((highest, item) => Math.max(highest, Number(item.id.replace("EWR-", "")) || 0), 0);
+          const reportId = `EWR-${highestId + 1}`;
           const dateReported = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date());
-          setReports((current) => [{ id: result.reportId!, issue: report.issue, floorId: report.floorId, location: `${report.floorName} · ${report.roomType}`, dateReported, status: result.status ?? "Active" }, ...current]);
+          setReports((current) => [{ id: reportId, issue: report.issue, floorId: report.floorId, location: `${report.floorName} · ${report.roomType}`, dateReported, status: "Active" }, ...current]);
           setTab("active");
-          setSuccessMessage(`Report ${result.reportId} created successfully.`);
+          setSuccessMessage(`${reportId} is now active and ready for the facilities team to review.`);
           setModalOpen(false);
-        } catch (error) {
-          setSubmitError(error instanceof Error ? error.message : "The report could not be created.");
         } finally {
           submissionInProgress.current = false;
           setSubmitting(false);
@@ -108,13 +94,15 @@ export default function ReportEnergyWastePage() {
   );
 }
 
-function Icon({ name }: { name: "chart" | "report" | "insights" | "menu" | "plus" }) {
+function Icon({ name }: { name: "chart" | "report" | "insights" | "menu" | "plus" | "check" | "close" }) {
   const paths = {
     chart: <><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /><path d="m4 14 5-4 4 3 6-7" /></>,
     report: <><path d="M8 4h8M9 3h6v3H9zM7 5H5v16h14V5h-2" /><path d="M8 11h8M8 15h5" /></>,
     insights: <path d="M4 20v-6M9 20V9M14 20v-4M19 20V4" />,
     menu: <path d="M4 7h16M4 12h16M4 17h16" />,
     plus: <path d="M12 5v14M5 12h14" />,
+    check: <path d="m5 12 4 4L19 6" />,
+    close: <path d="m6 6 12 12M18 6 6 18" />,
   };
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
 }

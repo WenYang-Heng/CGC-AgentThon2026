@@ -96,7 +96,7 @@ export default function CostPerformanceTab({ data, period: selectedPeriod, floor
   const metrics: { label: string; value: string; text: string }[] = [
     { label: "Electricity Spend", value: formatRm(summary.totalCostRm), text: `${context} · selected period` },
     { label: "Effective Energy Cost", value: normalized(summary.effectiveRateRmPerKwh, "kWh", 3), text: "Effective blended cost · source billing values" },
-    { label: "Cost per Employee", value: normalized(summary.costPerEmployee, "employee"), text: "Occupancy-normalized · annual-average headcount" },
+    { label: "Cost per Employee", value: normalized(summary.costPerEmployee, "employee"), text: `Occupancy-normalized · ${summary.employeeCoverage} of ${summary.floorCount} selected floors with headcount` },
     { label: "Cost per m²", value: normalized(summary.costPerM2, "m²"), text: "Area-normalized · selected-period cost" },
   ];
   const share = (floor: FloorCostPerformance) => { const ratio = safeRatio(floor.costRm, summary.totalCostRm); return ratio === null ? "Share unavailable" : `${(ratio * 100).toFixed(1)}% of selected cost`; };

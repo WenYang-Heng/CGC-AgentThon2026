@@ -364,8 +364,9 @@ export default function EnergyDashboard({ dashboardData }: { dashboardData: Ener
   const change = percentChange(currentUsage, completeSum(baselineValues));
   const singleFloor = scopedFloorEntries.length === 1 ? scopedFloorEntries[0][1] : null;
   const monthlyDemands = scopedFloorEntries.flatMap(([, floor]) => indices.map(index => floor.currentDemand2026?.[index] ?? null));
-  const peakDemand = monthlyDemands.length && monthlyDemands.every((value): value is number => value !== null)
-    ? Math.max(...monthlyDemands) : null;
+  const availableDemands = monthlyDemands.filter((value): value is number => value !== null);
+  const peakDemand = availableDemands.length ? Math.max(...availableDemands) : null;
+  const missingDemandCount = monthlyDemands.length - availableDemands.length;
   const carbonEmissions = currentUsage === null || emissionFactor === null ? null : currentUsage * emissionFactor;
   const scopeLabel = singleFloor?.label ?? (scopedFloorEntries.length === floorEntries.length ? "All Floors" : scopedFloorEntries.length + " Selected Floors");
   const selectedIds = new Set(scopedFloorEntries.map(([id]) => id));
@@ -410,7 +411,7 @@ export default function EnergyDashboard({ dashboardData }: { dashboardData: Ener
         <section className={styles.metricsGrid} aria-label="Energy summary">
           <StatCard icon={<Icon name="bolt" size={24} />} label="2026 Consumption" value={formatEnergy(currentUsage)} comparisonText={periodLabel + " · generated prototype data"} tone="neutral" trend="neutral" />
           <StatCard icon={<Icon name="trend" size={24} />} label="Change vs 2025 Baseline" value={formatChange(change)} comparisonText="Same selected period" tone={change === null || change === 0 ? "neutral" : change > 0 ? "negative" : "positive"} trend={change === null || change === 0 ? "neutral" : change > 0 ? "up" : "down"} />
-          <StatCard icon={<Icon name="chart" size={24} />} label={singleFloor ? "Peak Demand" : "Highest Floor Peak Demand"} value={peakDemand === null ? "Unavailable" : `${peakDemand.toLocaleString("en-MY")} kW`} comparisonText={`${periodLabel} · generated workbook demand`} tone="neutral" trend="neutral" />
+          <StatCard icon={<Icon name="chart" size={24} />} label={singleFloor ? "Peak Demand" : "Highest Floor Peak Demand"} value={peakDemand === null ? "No readings" : `${peakDemand.toLocaleString("en-MY")} kW`} comparisonText={`${periodLabel} · generated workbook demand${missingDemandCount ? ` · ${missingDemandCount} reading${missingDemandCount === 1 ? "" : "s"} not reported` : ""}`} tone="neutral" trend="neutral" />
           <StatCard icon={<Icon name="leaf" size={24} />} label="Carbon Emissions" value={carbonEmissions === null ? "Unavailable" : `${carbonEmissions.toLocaleString("en-MY", { maximumFractionDigits: 1 })} kg CO2e`} comparisonText={emissionFactor === null ? "Emission factor unavailable" : `Estimated using 2025 factor: ${emissionFactor} kg CO2e/kWh`} tone="neutral" trend="neutral" />
         </section>
         <section className={styles.analyticsGrid}>

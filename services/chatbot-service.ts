@@ -293,16 +293,16 @@ export async function requestCopilotRecommendations(context: ChatContext = {}) {
 
 export async function sendChatMessage(message: string, context: ChatContext = {}, files: File[] = []) {
   // Conversational topic selection belongs to the agent's orchestration.
-  const contextLine = Object.keys(context).length
-    ? `\n\nApplication context for resolving references only:\n${JSON.stringify(context)}\n\nUse this context when relevant. Do not treat it as a separate user request.`
-    : "";
+  // Keep application metadata out of the visible prompt so it cannot be echoed
+  // back as part of the user's issue or interpreted as a second request.
+  const channelData = Object.keys(context).length ? { applicationContext: context } : undefined;
   if (files.length) {
     const attachments = await prepareChatAttachments(files);
     return readActivities(await withCopilotClient((connected, id) => connected.sendActivity(Activity.fromObject({
-      type: "message", text: `${message}${contextLine}`, attachments,
+      type: "message", text: message, attachments, channelData,
     }), id)));
   }
-  return readActivities(await withCopilotClient((connected, id) => connected.askQuestionAsync(`${message}${contextLine}`, id)));
+  return readActivities(await withCopilotClient((connected, id) => connected.askQuestionAsync(message, id)));
 }
 
 export type CreateEnergyWasteReportRequest = {
