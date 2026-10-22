@@ -1,0 +1,40 @@
+.control {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.control select {
+  width: auto;
+  min-height: 42px;
+  padding: 9px 36px 9px 13px;
+  border: 1px solid #d5e1ed;
+  border-radius: 10px;
+  background-color: #fff;
+  color: #25364f;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 5px #1b365308;
+}
+
+.control select:hover {
+  background-color: #f8fbff;
+  border-color: #a9c7e5;
+}
+
+@media (max-width: 700px) {
+  .control {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .control select {
+    min-width: 0;
+    width: 100%;
+  }
+}

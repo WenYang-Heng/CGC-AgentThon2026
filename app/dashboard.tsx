@@ -173,8 +173,6 @@ function Icon({
   return <svg {...common}>{paths[name]}</svg>;
 }
 
-type FloorSort = "change" | "usage" | "employee";
-
 function completeSum(values: (number | null | undefined)[]): number | null {
   if (!values.length || values.some(value => value == null)) return null;
   return values.reduce<number>((sum, value) => sum + value!, 0);
@@ -343,14 +341,9 @@ export default function EnergyDashboard({ dashboardData }: { dashboardData: Ener
   const { startMonth, endMonth } = common.value.period;
   const indices = useMemo(() => getPeriodMonthIndices({ year: 2026, startMonth, endMonth }), [startMonth, endMonth]);
   const periodLabel = formatPeriodLabel(common.value.period);
-  const [floorSort, setFloorSort] = useState<FloorSort>("change");
 
   const [mobileNavOpen, setMobileNavOpen] =
     useState(false);
-
-  const [notice, setNotice] = useState<
-    string | null
-  >(null);
 
   const menuButtonRef =
     useRef<HTMLButtonElement>(null);
@@ -358,8 +351,8 @@ export default function EnergyDashboard({ dashboardData }: { dashboardData: Ener
   const monthIndex = indices.length - 1;
   const scopedFloorEntries = useMemo(() => common.value.floorIds ? floorEntries.filter(([id]) => common.value.floorIds!.includes(id)) : floorEntries, [common.value.floorIds, floorEntries]);
 
-  const baselineValues = monthlyTotals(scopedFloorEntries, "baseline2025").slice(common.value.period.startMonth, common.value.period.endMonth + 1);
-  const currentValues = monthlyTotals(scopedFloorEntries, "current2026").slice(common.value.period.startMonth, common.value.period.endMonth + 1);
+  const baselineValues = monthlyTotals(scopedFloorEntries, "baseline2025").slice(startMonth, endMonth + 1);
+  const currentValues = monthlyTotals(scopedFloorEntries, "current2026").slice(startMonth, endMonth + 1);
   const currentUsage = completeSum(currentValues);
   const change = percentChange(currentUsage, completeSum(baselineValues));
   const singleFloor = scopedFloorEntries.length === 1 ? scopedFloorEntries[0][1] : null;
@@ -385,18 +378,12 @@ export default function EnergyDashboard({ dashboardData }: { dashboardData: Ener
     const baseline = completeSum(indices.map(index => floor.baseline2025?.[index] ?? null));
     const current = completeSum(indices.map(index => floor.current2026?.[index] ?? null));
     return { id, floor, baseline, current, change: percentChange(current, baseline), employee: perEmployee(current, floor.employees) };
-  }).sort((a, b) => {
-    const first = floorSort === "change" ? a.change : floorSort === "usage" ? a.current : a.employee;
-    const second = floorSort === "change" ? b.change : floorSort === "usage" ? b.current : b.employee;
-    return first === null ? second === null ? a.id.localeCompare(b.id) : 1 : second === null ? -1 : second - first;
-  });
+  }).sort((a, b) => a.change === null ? b.change === null ? a.id.localeCompare(b.id) : 1 : b.change === null ? -1 : b.change - a.change);
   const electricitySeries: ChartSeries[] = [
     { id: "baseline", label: "2025", values: baselineValues, color: "#137be8" },
     { id: "current", label: "2026", values: currentValues, color: "#0bb894" },
   ];
   const carbonChanges = carbonMonthlyChanges(baselineValues, currentValues, emissionFactor);
-  const flash = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(null), 2600); };
-  const selectFloor = (id: string) => { common.onChange({ ...common.value, floorIds: [id] }); flash(floors[id].label + " selected"); };
   const closeNavigation = () => { setMobileNavOpen(false); window.requestAnimationFrame(() => menuButtonRef.current?.focus()); };
 
   return (<div className={styles.appShell}>
@@ -406,8 +393,7 @@ export default function EnergyDashboard({ dashboardData }: { dashboardData: Ener
         <button ref={menuButtonRef} className={styles.mobileMenu} onClick={() => setMobileNavOpen(!mobileNavOpen)} aria-label="Toggle navigation" aria-expanded={mobileNavOpen} aria-controls="primary-navigation"><Icon name={mobileNavOpen ? "close" : "menu"} /></button>
         <div className={styles.pageTitle}><h1>Dashboard</h1></div>
       </header>
-      <div className={styles.sharedFilters}><EnergyFilterBar value={common.value} onChange={common.onChange} notice={common.notice} floorSelection="multi" floors={floorEntries.map(([id, floor]) => ({ id, label: floor.label }))} advancedFilters={[{ key: "sort", label: "Floor performance sort", value: floorSort, defaultValue: "change", options: [{ value: "change", label: "Change vs baseline" }, { value: "usage", label: "2026 consumption" }, { value: "employee", label: "Energy per employee" }] }]} onApplyAdvanced={values => setFloorSort(values.sort as FloorSort)} /></div>
-
+      <div className={styles.sharedFilters}><EnergyFilterBar value={common.value} onChange={common.onChange} notice={common.notice} floorSelection="multi" floors={floorEntries.map(([id, floor]) => ({ id, label: floor.label }))} /></div>
         <section className={styles.metricsGrid} aria-label="Energy summary">
           <StatCard icon={<Icon name="bolt" size={24} />} label="2026 Consumption" value={formatEnergy(currentUsage)} comparisonText={periodLabel + " · generated prototype data"} tone="neutral" trend="neutral" />
           <StatCard icon={<Icon name="trend" size={24} />} label="Change vs 2025 Baseline" value={formatChange(change)} comparisonText="Same selected period" tone={change === null || change === 0 ? "neutral" : change > 0 ? "negative" : "positive"} trend={change === null || change === 0 ? "neutral" : change > 0 ? "up" : "down"} />
@@ -421,7 +407,7 @@ export default function EnergyDashboard({ dashboardData }: { dashboardData: Ener
         <section className={styles.dynamicSection}>
           <article className={`${styles.panel} ${styles.floorComparisonPanel}`}>
             <PanelHead title="Floor Performance" subtitle={periodLabel + " · compared with the same period in 2025"} />
-            <div className={styles.tableScroll}><table className={styles.comparisonTable}><thead><tr><th>Floor</th><th>Usage type</th><th>2025 baseline (kWh)</th><th>2026 generated (kWh)</th><th>Change vs baseline</th><th>Employees (2025)</th><th>kWh / employee</th></tr></thead><tbody>{ranked.map(row => <tr key={row.id} onClick={() => selectFloor(row.id)}><td><button type="button" onClick={event => { event.stopPropagation(); selectFloor(row.id); }}>{row.floor.short}</button></td><td>{row.floor.usageType}</td><td>{formatEnergy(row.baseline)}</td><td>{formatEnergy(row.current)}</td><td><span className={row.change === null || row.change === 0 ? undefined : row.change > 0 ? styles.statusWarning : styles.statusGood}>{formatChange(row.change)}</span></td><td>{row.floor.employees ?? "Unavailable"}</td><td>{row.employee === null ? "Unavailable" : row.employee.toFixed(1)}</td></tr>)}</tbody></table></div>
+            <div className={styles.tableScroll}><table className={styles.comparisonTable}><thead><tr><th>Floor</th><th>Usage type</th><th>2025 baseline (kWh)</th><th>2026 generated (kWh)</th><th>Change vs baseline</th><th>Employees (2025)</th><th>kWh / employee</th></tr></thead><tbody>{ranked.map(row => <tr key={row.id}><td>{row.floor.short}</td><td>{row.floor.usageType}</td><td>{formatEnergy(row.baseline)}</td><td>{formatEnergy(row.current)}</td><td><span className={row.change === null || row.change === 0 ? undefined : row.change > 0 ? styles.statusWarning : styles.statusGood}>{formatChange(row.change)}</span></td><td>{row.floor.employees ?? "Unavailable"}</td><td>{row.employee === null ? "Unavailable" : row.employee.toFixed(1)}</td></tr>)}</tbody></table></div>
           </article>
         </section>
         <footer className={styles.footer}><span>Sources: 2025 actual baseline and generated 2026 prototype workbook. 2026 values are not actual utility readings.</span><span>Emissions use the available 2025 factor; employee comparisons use 2025 occupancy metadata.</span></footer>
@@ -435,15 +421,6 @@ export default function EnergyDashboard({ dashboardData }: { dashboardData: Ener
         />
       ) : null}
 
-      {notice ? (
-        <div
-          className={styles.toast}
-          role="status"
-        >
-          <span />
-          {notice}
-        </div>
-      ) : null}
     </div>
   );
 }

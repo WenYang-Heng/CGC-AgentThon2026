@@ -4,13 +4,14 @@ import { CalendarDays, Building2, SlidersHorizontal, ChevronDown, X } from "luci
 import { DEFAULT_ENERGY_FILTERS, FLOOR_IDS, MONTH_NAMES, formatFloorName, formatPeriodLabel } from "@/lib/energy-filters";
 import type { EnergyFilterState } from "@/types/energy-filters";
 import styles from "./EnergyFilterBar.module.css";
+import inlineStyles from "./EnergyFilterInline.module.css";
 
 export type AdvancedFilter = { key: string; label: string; value: string; defaultValue?: string; options: { value: string; label: string }[] };
 type Props = {
   value: EnergyFilterState; onChange: (value: EnergyFilterState) => void;
   floors?: { id: string; label: string }[]; floorSelection?: "single" | "multi";
   availableYears?: number[]; showPeriod?: boolean; showFloor?: boolean; notice?: string;
-  advancedFilters?: AdvancedFilter[]; onApplyAdvanced?: (values: Record<string, string>) => void;
+  advancedFilters?: AdvancedFilter[]; advancedLayout?: "panel" | "inline"; onApplyAdvanced?: (values: Record<string, string>) => void;
 };
 function Popover({ label, icon, children }: { label: string; icon: ReactNode; children: (close: () => void) => ReactNode }) {
   const [open, setOpen] = useState(false); const id = useId();
@@ -53,10 +54,10 @@ function PeriodChoices({ value, years, onChange, close }: { value: EnergyFilterS
   </>;
 }
 
-export default function EnergyFilterBar({ value, onChange, floors = FLOOR_IDS.map(id => ({ id, label: formatFloorName(id) })), floorSelection = "single", availableYears = [2026], showPeriod = true, showFloor = true, notice, advancedFilters = [], onApplyAdvanced }: Props) {
+export default function EnergyFilterBar({ value, onChange, floors = FLOOR_IDS.map(id => ({ id, label: formatFloorName(id) })), floorSelection = "single", availableYears = [2026], showPeriod = true, showFloor = true, notice, advancedFilters = [], advancedLayout = "panel", onApplyAdvanced }: Props) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const advancedButton = useRef<HTMLButtonElement>(null); const advancedId = useId();
-  const activeAdvanced = advancedFilters.filter(filter => filter.value !== (filter.defaultValue ?? ""));
+  const activeAdvanced = advancedLayout === "inline" ? [] : advancedFilters.filter(filter => filter.value !== (filter.defaultValue ?? ""));
   const periodActive = showPeriod && (value.period.startMonth !== 0 || value.period.endMonth !== 11 || value.period.year !== 2026);
   const selectedFloors = showFloor ? value.floorIds ?? [] : [];
   const defaults = Object.fromEntries(advancedFilters.map(filter => [filter.key, filter.defaultValue ?? ""]));
@@ -65,7 +66,7 @@ export default function EnergyFilterBar({ value, onChange, floors = FLOOR_IDS.ma
     <div className={styles.controls}>
       {showPeriod && <Popover label={"Analysis Period: " + formatPeriodLabel(value.period)} icon={<CalendarDays size={17} />}>{close => <PeriodChoices value={value} years={availableYears} onChange={onChange} close={close} />}</Popover>}
       {showFloor && <Popover label={"Floor: " + (value.floorIds ? value.floorIds.length === 1 ? formatFloorName(value.floorIds[0]) : value.floorIds.length + " floors" : "All Floors")} icon={<Building2 size={17} />}>{close => <FloorChoices value={value.floorIds} floors={floors} selection={floorSelection} close={close} onApply={floorIds => onChange({ ...value, floorIds })} />}</Popover>}
-      {advancedFilters.length > 0 && <button ref={advancedButton} type="button" className={styles.trigger} aria-expanded={advancedOpen} aria-controls={advancedOpen ? advancedId : undefined} onClick={() => setAdvancedOpen(current => !current)}><SlidersHorizontal size={17} />Filters{activeAdvanced.length > 0 && <span className={styles.count}>{activeAdvanced.length}</span>}</button>}
+      {advancedLayout === "inline" ? advancedFilters.map(filter => <label className={`${styles.inlineFilter} ${inlineStyles.control}`} key={filter.key}><select aria-label={filter.label} value={filter.value} onChange={event => onApplyAdvanced?.({ ...Object.fromEntries(advancedFilters.map(item => [item.key, item.value])), [filter.key]: event.target.value })}>{filter.options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>) : advancedFilters.length > 0 && <button ref={advancedButton} type="button" className={styles.trigger} aria-expanded={advancedOpen} aria-controls={advancedOpen ? advancedId : undefined} onClick={() => setAdvancedOpen(current => !current)}><SlidersHorizontal size={17} />Filters{activeAdvanced.length > 0 && <span className={styles.count}>{activeAdvanced.length}</span>}</button>}
     </div>
     {(periodActive || selectedFloors.length > 0 || activeAdvanced.length > 0) && <div className={styles.chips} aria-label="Applied filters">
       {periodActive && <button type="button" onClick={() => onChange({ ...value, period: resetPeriod })} aria-label="Remove period filter">{formatPeriodLabel(value.period)}<X size={13} /></button>}
@@ -74,6 +75,6 @@ export default function EnergyFilterBar({ value, onChange, floors = FLOOR_IDS.ma
       <button type="button" className={styles.clear} onClick={() => { onChange({ period: resetPeriod, floorIds: null }); if (advancedFilters.length) onApplyAdvanced?.(defaults); }}>Clear all</button>
     </div>}
     {notice && <p className={styles.notice} role="status">{notice}</p>}
-    {advancedOpen && <div id={advancedId} role="region" aria-label="Advanced filters" onKeyDown={event => { if (event.key === "Escape") { setAdvancedOpen(false); advancedButton.current?.focus(); } }}><AdvancedPanel key={JSON.stringify(advancedFilters.map(filter => filter.value))} filters={advancedFilters} onApply={values => onApplyAdvanced?.(values)} close={() => { setAdvancedOpen(false); advancedButton.current?.focus(); }} /></div>}
+    {advancedLayout === "panel" && advancedOpen && <div id={advancedId} role="region" aria-label="Advanced filters" onKeyDown={event => { if (event.key === "Escape") { setAdvancedOpen(false); advancedButton.current?.focus(); } }}><AdvancedPanel key={JSON.stringify(advancedFilters.map(filter => filter.value))} filters={advancedFilters} onApply={values => onApplyAdvanced?.(values)} close={() => { setAdvancedOpen(false); advancedButton.current?.focus(); }} /></div>}
   </section>;
 }

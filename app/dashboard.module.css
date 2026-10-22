@@ -106,6 +106,7 @@
   .summaryGrid,.explorerGrid,.detailsGrid{grid-template-columns:1fr}
 }
 
+.sharedFilters{margin-bottom:20px;position:relative;z-index:12}
 @media(max-width:700px){
   .appShell{padding-left:0}
   .topbar{display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px}
@@ -125,4 +126,3 @@
   .metricsGrid{grid-template-columns:1fr}
 }
 
-.sharedFilters{margin-bottom:20px;position:relative;z-index:12}
